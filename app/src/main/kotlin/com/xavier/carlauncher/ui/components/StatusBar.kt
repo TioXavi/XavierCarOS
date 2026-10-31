@@ -1,0 +1,149 @@
+package com.xavier.carlauncher.ui.components
+
+import android.content.Intent
+import com.xavier.carlauncher.system.AutomotiveIntentResolver
+import android.provider.Settings
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Bluetooth
+import androidx.compose.material.icons.filled.DirectionsCar
+import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.Phone
+import androidx.compose.material3.Divider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.xavier.carlauncher.ui.theme.ColorGrayMid
+
+/**
+ * Top status bar for the automotive launcher.
+ * Completely interactive with direct shortcuts to system settings, BT, and Car menus.
+ *
+ * @param currentTime  Formatted time string, e.g. "10:45"
+ * @param currentDate  Formatted date string, e.g. "Lunes, 26 Oct"
+ * @param outsideTemp  Outside temperature in Celsius
+ */
+@Composable
+fun TopStatusBar(
+    currentTime: String,
+    currentDate: String,
+    outsideTemp: Int,
+    modifier: Modifier = Modifier
+) {
+    val context = LocalContext.current
+
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(48.dp)
+            .padding(horizontal = 16.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        // ── Left: Clock + Date (Tapping opens Date & Time settings) ───────────
+        Row(
+            verticalAlignment = Alignment.Bottom,
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            modifier = Modifier.clickable {
+                try {
+                    context.startActivity(Intent(Settings.ACTION_DATE_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+                } catch (_: Exception) {}
+            }
+        ) {
+            Text(
+                text       = currentTime,
+                fontSize   = 32.sp,
+                fontWeight = FontWeight.Bold,
+                color      = Color.White
+            )
+            Text(
+                text     = currentDate,
+                fontSize = 16.sp,
+                color    = ColorGrayMid,
+                modifier = Modifier.padding(bottom = 3.dp)
+            )
+        }
+
+        // ── Right: Status icons (Interactive) ─────────────────────────────────
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            // Location
+            Icon(
+                imageVector        = Icons.Default.LocationOn,
+                contentDescription = "Location",
+                tint               = Color.White,
+                modifier           = Modifier
+                    .size(22.dp)
+                    .clickable {
+                        try {
+                            context.startActivity(Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+                        } catch (_: Exception) {}
+                    }
+            )
+
+            // Bluetooth
+            Icon(
+                imageVector        = Icons.Default.Bluetooth,
+                contentDescription = "Bluetooth",
+                tint               = Color.White,
+                modifier           = Modifier
+                    .size(22.dp)
+                    .clickable {
+                        AutomotiveIntentResolver.launchSafely(context, AutomotiveIntentResolver.getBluetoothSettingsIntent(context))
+                    }
+            )
+
+            // Phone
+            Icon(
+                imageVector        = Icons.Default.Phone,
+                contentDescription = "Phone",
+                tint               = Color.White,
+                modifier           = Modifier
+                    .size(22.dp)
+                    .clickable {
+                        AutomotiveIntentResolver.launchSafely(context, AutomotiveIntentResolver.getPhoneIntent(context))
+                    }
+            )
+
+            // Vertical divider
+            Divider(
+                modifier  = Modifier
+                    .height(24.dp)
+                    .width(1.dp),
+                color     = Color.White.copy(alpha = 0.3f)
+            )
+
+            // Car / Settings Shortcut
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                modifier = Modifier.clickable {
+                    AutomotiveIntentResolver.launchSafely(context, AutomotiveIntentResolver.getCarSettingsIntent(context))
+                }
+            ) {
+                Icon(
+                    imageVector        = Icons.Default.DirectionsCar,
+                    contentDescription = "Car",
+                    tint               = Color.White,
+                    modifier           = Modifier.size(20.dp)
+                )
+                Text(
+                    text     = "$outsideTemp°C",
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color    = Color.White
+                )
+            }
+        }
+    }
+}

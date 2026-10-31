@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- App identity -->
+    <string name="app_name">XavierCarOS</string>
+
+    <!-- Home screen greeting -->
+    <string name="greeting">Hola, Xavier</string>
+    <string name="subtitle">Buenas tardes · Bienvenido</string>
+
+    <!-- Navigation labels -->
+    <string name="nav_home">Inicio</string>
+    <string name="nav_music">Música</string>
+    <string name="nav_maps">Mapas</string>
+    <string name="nav_phone">Teléfono</string>
+    <string name="nav_settings">Ajustes</string>
+
+    <!-- Speedometer card -->
+    <string name="speedometer_label">Velocidad</string>
+    <string name="speedometer_unit">km/h</string>
+    <string name="speedometer_gps_signal">Señal GPS</string>
+    <string name="speedometer_no_signal">Sin señal</string>
+
+    <!-- Music / media card -->
+    <string name="music_card_title">Reproduciendo ahora</string>
+    <string name="music_no_track">Sin reproducción activa</string>
+    <string name="music_play">Reproducir</string>
+    <string name="music_pause">Pausar</string>
+    <string name="music_next">Siguiente</string>
+    <string name="music_prev">Anterior</string>
+
+    <!-- Map card -->
+    <string name="map_card_title">Navegación</string>
+    <string name="map_searching">Buscando ubicación…</string>
+    <string name="map_open_navigation">Abrir navegación</string>
+
+    <!-- Bluetooth card -->
+    <string name="bluetooth_card_title">Bluetooth</string>
+    <string name="bluetooth_connected">Conectado</string>
+    <string name="bluetooth_disconnected">Desconectado</string>
+    <string name="bluetooth_searching">Buscando dispositivos…</string>
+
+    <!-- Notification listener -->
+    <string name="notification_listener_label">Escuchador de notificaciones XavierCarOS</string>
+
+    <!-- Permissions rationale -->
+    <string name="permission_location_rationale">XavierCarOS necesita acceso a tu ubicación para mostrar la velocidad GPS y la navegación.</string>
+    <string name="permission_bluetooth_rationale">XavierCarOS necesita acceso a Bluetooth para conectar tu teléfono y reproducir audio en el coche.</string>
+    <string name="permission_notification_rationale">XavierCarOS necesita acceso a las notificaciones para mostrar información de reproducción de música.</string>
+
+    <!-- General UI -->
+    <string name="ok">Aceptar</string>
+    <string name="cancel">Cancelar</string>
+    <string name="retry">Reintentar</string>
+    <string name="close">Cerrar</string>
+    <string name="loading">Cargando…</string>
+    <string name="error_generic">Se produjo un error. Inténtalo de nuevo.</string>
+</resources>

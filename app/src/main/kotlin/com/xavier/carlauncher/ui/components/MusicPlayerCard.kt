@@ -1,0 +1,557 @@
+package com.xavier.carlauncher.ui.components
+
+import android.graphics.Bitmap
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.Crossfade
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.painter.BitmapPainter
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.xavier.carlauncher.media.AudioSource
+import com.xavier.carlauncher.media.LyricEntry
+import com.xavier.carlauncher.media.MediaState
+import com.xavier.carlauncher.media.PlaybackMode
+import com.xavier.carlauncher.media.PowerampNotificationListener
+import com.xavier.carlauncher.ui.theme.ColorBorder
+import com.xavier.carlauncher.ui.theme.ColorGrayDark
+import com.xavier.carlauncher.ui.theme.ColorGrayMid
+import com.xavier.carlauncher.ui.theme.ColorMusicGradientEnd
+import com.xavier.carlauncher.ui.theme.ColorMusicGradientStart
+import com.xavier.carlauncher.ui.theme.ColorNeonBlue
+
+private val musicCardBrush = Brush.linearGradient(
+    colors = listOf(ColorMusicGradientStart, ColorMusicGradientEnd)
+)
+
+/**
+ * Universal media player card supporting Spotify, Poweramp, YouTube Music,
+ * Apple Music, VLC, Bluetooth, etc. Includes interactive seeker and full lyrics view.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun MusicPlayerCard(
+    mediaState:       MediaState,
+    onPrevious:       () -> Unit,
+    onPlayPause:      () -> Unit,
+    onNext:           () -> Unit,
+    onSeek:           (Long) -> Unit = {},
+    onToggleShuffle:  () -> Unit = {},
+    onToggleRepeat:   () -> Unit = {},
+    onLoadLrc:        (Uri) -> Unit = {},
+    onOpenPlayer:     () -> Unit = {},
+    modifier:         Modifier = Modifier
+) {
+    var showLyrics by remember { mutableStateOf(false) }
+    val currentSource by PowerampNotificationListener.currentSource.collectAsState()
+
+    Card(
+        modifier = modifier,
+        shape    = RoundedCornerShape(24.dp),
+        border   = BorderStroke(1.dp, ColorBorder),
+        colors   = CardDefaults.cardColors(containerColor = Color.Transparent)
+    ) {
+        Box(
+            modifier = Modifier
+                .background(musicCardBrush)
+                .fillMaxSize()
+                .padding(16.dp)
+        ) {
+            // Header Icons: Lyrics Toggle + Bluetooth source
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .align(Alignment.TopEnd),
+                horizontalArrangement = Arrangement.End,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    // Lyrics toggle button
+                    IconButton(
+                        onClick = { showLyrics = !showLyrics },
+                        modifier = Modifier.size(28.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.QueueMusic,
+                            contentDescription = "Letras",
+                            tint = if (showLyrics) Color(0xFF38BDF8) else Color.White.copy(alpha = 0.7f),
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+
+                    // Audio source toggle button (Local USB vs Bluetooth)
+                    IconButton(
+                        onClick = { PowerampNotificationListener.toggleSource() },
+                        modifier = Modifier.size(28.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Bluetooth,
+                            contentDescription = "Fuente de audio",
+                            tint = if (currentSource == AudioSource.BLUETOOTH) Color(0xFF38BDF8) else Color.White.copy(alpha = 0.5f),
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+
+                    // Expand / Open Expanded Music Studio
+                    IconButton(
+                        onClick = onOpenPlayer,
+                        modifier = Modifier.size(28.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.OpenInFull,
+                            contentDescription = "Pantalla completa",
+                            tint = Color.White.copy(alpha = 0.7f),
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
+                }
+            }
+
+            Crossfade(
+                targetState   = showLyrics,
+                animationSpec = tween(350),
+                label         = "lyricsCrossfade"
+            ) { lyricsVisible ->
+                if (lyricsVisible) {
+                    LyricsView(
+                        mediaState = mediaState,
+                        onDismiss  = { showLyrics = false },
+                        onLoadLrc  = onLoadLrc,
+                        modifier   = Modifier
+                            .fillMaxSize()
+                            .padding(top = 28.dp)
+                    )
+                } else {
+                    PlayerView(
+                        mediaState      = mediaState,
+                        onPrevious      = onPrevious,
+                        onPlayPause     = onPlayPause,
+                        onNext          = onNext,
+                        onSeek          = onSeek,
+                        onToggleShuffle = onToggleShuffle,
+                        onToggleRepeat  = onToggleRepeat,
+                        onAlbumClick    = onOpenPlayer,
+                        modifier        = Modifier
+                            .fillMaxSize()
+                            .padding(top = 18.dp)
+                    )
+                }
+            }
+        }
+    }
+}
+
+// ── Player view ──────────────────────────────────────────────────────────────
+
+@Composable
+private fun PlayerView(
+    mediaState:      MediaState,
+    onPrevious:      () -> Unit,
+    onPlayPause:     () -> Unit,
+    onNext:          () -> Unit,
+    onSeek:          (Long) -> Unit,
+    onToggleShuffle: () -> Unit = {},
+    onToggleRepeat:  () -> Unit = {},
+    onAlbumClick:    () -> Unit,
+    modifier:        Modifier = Modifier
+) {
+    Column(
+        modifier            = modifier,
+        verticalArrangement = Arrangement.SpaceBetween
+    ) {
+        // Album art + track info
+        Row(
+            verticalAlignment     = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            modifier              = Modifier.fillMaxWidth()
+        ) {
+            AlbumArtBox(
+                bitmap  = mediaState.albumArt,
+                onClick = onAlbumClick
+            )
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .clickable(onClick = onAlbumClick)
+            ) {
+                Text(
+                    text       = mediaState.title.ifBlank { "Sin reproducción" },
+                    fontSize   = 16.sp,
+                    fontWeight = FontWeight.Bold,
+                    color      = Color.White,
+                    maxLines   = 1,
+                    overflow   = TextOverflow.Ellipsis
+                )
+                Text(
+                    text     = mediaState.artist.ifBlank { "Toca reproducir para iniciar" },
+                    fontSize = 13.sp,
+                    color    = ColorGrayMid,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                if (mediaState.lyricsLine.isNotBlank()) {
+                    Text(
+                        text = "♪ ${mediaState.lyricsLine}",
+                        fontSize = 12.sp,
+                        color = Color(0xFF38BDF8),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.padding(top = 2.dp)
+                    )
+                }
+            }
+        }
+
+        // Progress slider
+        val progress = if (mediaState.durationMs > 0L) {
+            (mediaState.progressMs.toFloat() / mediaState.durationMs.toFloat()).coerceIn(0f, 1f)
+        } else 0f
+
+        var isDragging by remember { mutableStateOf(false) }
+        var dragProgress by remember { mutableStateOf(0f) }
+
+        Column {
+            Slider(
+                value = if (isDragging) dragProgress else progress,
+                onValueChange = {
+                    isDragging = true
+                    dragProgress = it
+                },
+                onValueChangeFinished = {
+                    isDragging = false
+                    val targetMs = (dragProgress * mediaState.durationMs).toLong()
+                    onSeek(targetMs)
+                },
+                colors = SliderDefaults.colors(
+                    thumbColor         = Color.White,
+                    activeTrackColor   = ColorNeonBlue,
+                    inactiveTrackColor = Color.White.copy(alpha = 0.2f)
+                ),
+                modifier = Modifier.fillMaxWidth()
+            )
+            Row(
+                modifier              = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                val currentDisplayMs = if (isDragging) {
+                    (dragProgress * mediaState.durationMs).toLong()
+                } else mediaState.progressMs
+                Text(
+                    text = formatTime(currentDisplayMs),
+                    fontSize = 11.sp,
+                    color = if (isDragging) ColorNeonBlue else ColorGrayDark
+                )
+                Text(text = formatTime(mediaState.durationMs), fontSize = 11.sp, color = ColorGrayDark)
+            }
+        }
+
+        // Playback controls: [Shuffle] [Previous] [Play/Pause] [Next] [Repeat]
+        Row(
+            modifier              = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment     = Alignment.CenterVertically
+        ) {
+            // Shuffle Button
+            IconButton(
+                onClick = onToggleShuffle,
+                modifier = Modifier.size(36.dp)
+            ) {
+                val isShuffleActive = mediaState.playbackMode == PlaybackMode.SHUFFLE
+                Icon(
+                    imageVector = Icons.Default.Shuffle,
+                    contentDescription = "Aleatorio",
+                    tint = if (isShuffleActive) Color(0xFF38BDF8) else Color.White.copy(alpha = 0.45f),
+                    modifier = Modifier.size(22.dp)
+                )
+            }
+
+            Spacer(modifier = Modifier.width(14.dp))
+
+            IconButton(
+                onClick = onPrevious,
+                modifier = Modifier.size(36.dp)
+            ) {
+                Icon(
+                    imageVector        = Icons.Default.SkipPrevious,
+                    contentDescription = "Previous",
+                    tint               = Color.White,
+                    modifier           = Modifier.size(30.dp)
+                )
+            }
+
+            Spacer(modifier = Modifier.width(10.dp))
+
+            // Play / Pause large circle button
+            Box(
+                modifier = Modifier
+                    .size(52.dp)
+                    .clip(CircleShape)
+                    .background(Color.White)
+                    .clickable(onClick = onPlayPause),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector        = if (mediaState.isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
+                    contentDescription = if (mediaState.isPlaying) "Pause" else "Play",
+                    tint               = Color(0xFF1E1B4B),
+                    modifier           = Modifier.size(30.dp)
+                )
+            }
+
+            Spacer(modifier = Modifier.width(10.dp))
+
+            IconButton(
+                onClick = onNext,
+                modifier = Modifier.size(36.dp)
+            ) {
+                Icon(
+                    imageVector        = Icons.Default.SkipNext,
+                    contentDescription = "Next",
+                    tint               = Color.White,
+                    modifier           = Modifier.size(30.dp)
+                )
+            }
+
+            Spacer(modifier = Modifier.width(14.dp))
+
+            // Repeat Button (Secuencial bucle vs Repetir pista)
+            IconButton(
+                onClick = onToggleRepeat,
+                modifier = Modifier.size(36.dp)
+            ) {
+                val isRepeatOne = mediaState.playbackMode == PlaybackMode.REPEAT_ONE
+                val isSequence = mediaState.playbackMode == PlaybackMode.SEQUENCE
+                Icon(
+                    imageVector = if (isRepeatOne) Icons.Default.RepeatOne else Icons.Default.Repeat,
+                    contentDescription = if (isRepeatOne) "Repetir Pista" else "Secuencial",
+                    tint = if (isRepeatOne || isSequence) Color(0xFF38BDF8) else Color.White.copy(alpha = 0.45f),
+                    modifier = Modifier.size(22.dp)
+                )
+            }
+        }
+    }
+}
+
+// ── Album art box ────────────────────────────────────────────────────────────
+
+@Composable
+private fun AlbumArtBox(bitmap: Bitmap?, onClick: () -> Unit) {
+    Box(
+        modifier = Modifier
+            .size(76.dp)
+            .clip(RoundedCornerShape(12.dp))
+            .background(Color(0xFF2D1B69))
+            .clickable(onClick = onClick),
+        contentAlignment = Alignment.Center
+    ) {
+        if (bitmap != null) {
+            Image(
+                painter            = BitmapPainter(bitmap.asImageBitmap()),
+                contentDescription = "Album art",
+                contentScale       = ContentScale.Crop,
+                modifier           = Modifier.fillMaxSize()
+            )
+        } else {
+            Icon(
+                imageVector        = Icons.Default.MusicNote,
+                contentDescription = "No album art",
+                tint               = ColorGrayMid,
+                modifier           = Modifier.size(34.dp)
+            )
+        }
+    }
+}
+
+// ── Full Lyrics view ─────────────────────────────────────────────────────────
+
+@Composable
+private fun LyricsView(
+    mediaState: MediaState,
+    onDismiss:  () -> Unit,
+    onLoadLrc:  (Uri) -> Unit,
+    modifier:   Modifier = Modifier
+) {
+    val context = LocalContext.current
+    val listState = rememberLazyListState()
+
+    // File picker launcher for .lrc files
+    val lrcPickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        uri?.let { onLoadLrc(it) }
+    }
+
+    // Auto-scroll to current singing lyric entry
+    val currentLyricIndex = remember(mediaState.progressMs, mediaState.fullLyrics) {
+        if (mediaState.fullLyrics.isEmpty()) -1
+        else {
+            val idx = mediaState.fullLyrics.indexOfLast { it.timeMs <= mediaState.progressMs }
+            if (idx >= 0) idx else 0
+        }
+    }
+
+    LaunchedEffect(currentLyricIndex) {
+        if (currentLyricIndex >= 0 && currentLyricIndex < mediaState.fullLyrics.size) {
+            listState.animateScrollToItem((currentLyricIndex - 2).coerceAtLeast(0))
+        }
+    }
+
+    Column(
+        modifier = modifier,
+        verticalArrangement = Arrangement.SpaceBetween
+    ) {
+        // Lyrics Content Area
+        Box(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxWidth(),
+            contentAlignment = Alignment.Center
+        ) {
+            when {
+                // Case 1: Synchronized LRC lyrics available
+                mediaState.fullLyrics.isNotEmpty() -> {
+                    LazyColumn(
+                        state = listState,
+                        modifier = Modifier.fillMaxSize(),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                        contentPadding = PaddingValues(vertical = 16.dp)
+                    ) {
+                        itemsIndexed(mediaState.fullLyrics) { index, entry ->
+                            val isCurrent = index == currentLyricIndex
+                            Text(
+                                text = entry.text,
+                                fontSize = if (isCurrent) 17.sp else 14.sp,
+                                fontWeight = if (isCurrent) FontWeight.Bold else FontWeight.Normal,
+                                color = if (isCurrent) Color(0xFF38BDF8) else Color.White.copy(alpha = 0.5f),
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 8.dp)
+                            )
+                        }
+                    }
+                }
+
+                // Case 2: Plain text embedded lyrics available
+                mediaState.rawLyricsText.isNotBlank() -> {
+                    LazyColumn(
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(12.dp)
+                    ) {
+                        item {
+                            Text(
+                                text = mediaState.rawLyricsText,
+                                fontSize = 14.sp,
+                                color = Color.White.copy(alpha = 0.85f),
+                                textAlign = TextAlign.Center,
+                                lineHeight = 22.sp,
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                        }
+                    }
+                }
+
+                // Case 3: No lyrics detected
+                else -> {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center,
+                        modifier = Modifier.padding(16.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Lyrics,
+                            contentDescription = null,
+                            tint = Color.White.copy(alpha = 0.3f),
+                            modifier = Modifier.size(36.dp)
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = "Sin letra disponible",
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = Color.White.copy(alpha = 0.8f)
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = "Puedes cargar un archivo .lrc sincronizado",
+                            fontSize = 11.sp,
+                            color = ColorGrayDark
+                        )
+                        Spacer(modifier = Modifier.height(10.dp))
+                        Button(
+                            onClick = { lrcPickerLauncher.launch("*/*") },
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2563EB)),
+                            shape = RoundedCornerShape(10.dp),
+                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
+                        ) {
+                            Icon(Icons.Default.UploadFile, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(text = "Cargar archivo .LRC", fontSize = 12.sp)
+                        }
+                    }
+                }
+            }
+        }
+
+        // Bottom dismissal bar
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 4.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            TextButton(
+                onClick = { lrcPickerLauncher.launch("*/*") },
+                contentPadding = PaddingValues(0.dp)
+            ) {
+                Text(text = "Buscar .LRC", fontSize = 11.sp, color = Color(0xFF38BDF8))
+            }
+
+            TextButton(
+                onClick = onDismiss,
+                contentPadding = PaddingValues(0.dp)
+            ) {
+                Text(text = "Volver al reproductor", fontSize = 11.sp, color = Color.White.copy(alpha = 0.7f))
+            }
+        }
+    }
+}
+
+// ── Helpers ──────────────────────────────────────────────────────────────────
+
+fun formatTime(ms: Long): String {
+    val totalSeconds = (ms / 1000L).coerceAtLeast(0L)
+    val minutes      = totalSeconds / 60L
+    val seconds      = totalSeconds % 60L
+    return "$minutes:${seconds.toString().padStart(2, '0')}"
+}

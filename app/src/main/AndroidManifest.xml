@@ -1,0 +1,162 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <!-- ── Location ── -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
+
+    <!-- ── Bluetooth ── -->
+    <uses-permission android:name="android.permission.BLUETOOTH" />
+    <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" />
+    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
+    <uses-permission android:name="android.permission.BLUETOOTH_SCAN" />
+
+    <!-- ── Notifications / Media ── -->
+    <uses-permission android:name="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE" />
+
+    <!-- ── Package Visibility ── -->
+    <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES"
+        tools:ignore="QueryAllPackagesPermission" />
+
+    <!-- ── System UI / Overlay ── -->
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+
+    <!-- ── Network ── -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+    <uses-permission android:name="android.permission.CHANGE_WIFI_STATE" />
+
+    <!-- ── Foreground Service ── -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+
+    <!-- ── Boot & Wake ── -->
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+
+    <!-- ── Storage ── -->
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"
+        android:maxSdkVersion="32" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"
+        android:maxSdkVersion="32" />
+
+    <!-- ── Privileged / Root (granted when rooted or system-installed) ── -->
+    <uses-permission android:name="android.permission.WRITE_SECURE_SETTINGS"
+        tools:ignore="ProtectedPermissions" />
+    <uses-permission android:name="android.permission.MEDIA_CONTENT_CONTROL"
+        tools:ignore="ProtectedPermissions" />
+
+    <application
+        android:allowBackup="true"
+        android:icon="@drawable/corolla_base"
+        android:label="@string/app_name"
+        android:roundIcon="@drawable/corolla_base"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.XavierCarOS"
+        android:networkSecurityConfig="@xml/network_security_config"
+        tools:targetApi="34">
+
+        <!-- ═══════════════════════════════════════════════════════════════
+             MainActivity — Home Launcher entry point
+             ═══════════════════════════════════════════════════════════════ -->
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:launchMode="singleTask"
+            android:screenOrientation="landscape"
+            android:windowSoftInputMode="stateAlwaysHidden|adjustResize">
+            <intent-filter android:priority="1000">
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.HOME" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <!-- ═══════════════════════════════════════════════════════════════
+             NotificationListenerService — Poweramp / media
+             ═══════════════════════════════════════════════════════════════ -->
+        <service
+            android:name=".media.PowerampNotificationListener"
+            android:exported="true"
+            android:label="@string/notification_listener_label"
+            android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE">
+            <intent-filter>
+                <action android:name="android.service.notification.NotificationListenerService" />
+            </intent-filter>
+        </service>
+
+        <!-- ═══════════════════════════════════════════════════════════════
+             FytMusicService — Factory FYT / SYU Car Music Interceptor
+             ═══════════════════════════════════════════════════════════════ -->
+        <service
+            android:name=".media.FytMusicService"
+            android:exported="true"
+            android:foregroundServiceType="mediaPlayback">
+            <intent-filter>
+                <action android:name="com.fyt.launcher.music" />
+                <action android:name="com.syu.music" />
+            </intent-filter>
+        </service>
+
+        <!-- ═══════════════════════════════════════════════════════════════
+             AccOffService — Power & Deep Sleep Management
+             ═══════════════════════════════════════════════════════════════ -->
+        <service
+            android:name=".services.AccOffService"
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="Vehicle ACC Power Management" />
+        </service>
+
+        <!-- ═══════════════════════════════════════════════════════════════
+             BroadcastReceivers
+             ═══════════════════════════════════════════════════════════════ -->
+
+        <!-- CAN bus door events (internal, not exported) -->
+        <receiver
+            android:name=".canbus.CanbusDoorReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.xavier.carlauncher.ACTION_CANBUS_DOOR" />
+            </intent-filter>
+        </receiver>
+
+        <!-- Bluetooth state changes -->
+        <receiver
+            android:name=".bluetooth.BluetoothStateReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.bluetooth.adapter.action.STATE_CHANGED" />
+                <action android:name="android.bluetooth.device.action.ACL_CONNECTED" />
+                <action android:name="android.bluetooth.device.action.ACL_DISCONNECTED" />
+            </intent-filter>
+        </receiver>
+
+        <!-- FYT Music & Hardware SWC Broadcast Interceptor -->
+        <receiver
+            android:name=".media.FytMusicReceiver"
+            android:exported="true">
+            <intent-filter android:priority="1000">
+                <action android:name="com.fyt.launcher.music" />
+                <action android:name="com.syu.music" />
+                <action android:name="syu.widget.playpause" />
+                <action android:name="syu.widget.next" />
+                <action android:name="syu.widget.last" />
+                <action android:name="syu.widget.prev" />
+                <action android:name="com.syu.music.playpause" />
+                <action android:name="com.syu.music.next" />
+                <action android:name="com.syu.music.prev" />
+                <action android:name="android.intent.action.MEDIA_BUTTON" />
+            </intent-filter>
+        </receiver>
+
+    </application>
+
+</manifest>
