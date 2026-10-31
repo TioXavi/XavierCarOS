@@ -107,6 +107,20 @@ data class GeoResponseItem(
     @SerializedName("country") val country: String = ""
 )
 
+// ── Open-Meteo fallback data classes (100% public & keyless) ─────────────────
+
+data class OpenMeteoResponse(
+    @SerializedName("current") val current: OpenMeteoCurrent?
+)
+
+data class OpenMeteoCurrent(
+    @SerializedName("temperature_2m") val temp: Double = 22.0,
+    @SerializedName("relative_humidity_2m") val humidity: Int = 50,
+    @SerializedName("surface_pressure") val pressure: Double = 1013.0,
+    @SerializedName("wind_speed_10m") val windSpeedKmH: Double = 10.0,
+    @SerializedName("weather_code") val weatherCode: Int = 0
+)
+
 // ── Retrofit service interface ────────────────────────────────────────────────
 
 interface WeatherApiService {
@@ -136,6 +150,12 @@ interface WeatherApiService {
         @Query("limit") limit: Int = 1,
         @Query("appid") apiKey: String
     ): List<GeoResponseItem>
+
+    @GET("https://api.open-meteo.com/v1/forecast?current=temperature_2m,relative_humidity_2m,surface_pressure,wind_speed_10m,weather_code")
+    suspend fun getOpenMeteoWeather(
+        @Query("latitude")  lat: Double,
+        @Query("longitude") lon: Double
+    ): OpenMeteoResponse
 }
 
 // â”€â”€ Repository â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -208,9 +228,23 @@ class WeatherRepository(private val context: Context) {
             cacheWeatherData(weatherData)
             Log.d(TAG, "Weather fetched successfully for ($lat, $lon): ${weatherData.cityName}, ${weatherData.department}")
             weatherData
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to fetch weather — loading from cache", e)
-            loadCachedWeatherData()
+        } catch (owmError: Exception) {
+            Log.w(TAG, "OWM request failed ($owmError) — using keyless Open-Meteo fallback...")
+            try {
+                val openMeteo = apiService.getOpenMeteoWeather(lat, lon)
+                val curr = openMeteo.current
+                if (curr != null) {
+                    val weatherData = mapOpenMeteoToWeatherData(curr, lat, lon)
+                    cacheWeatherData(weatherData)
+                    Log.d(TAG, "Weather fetched successfully via Open-Meteo (keyless fallback): ${weatherData.cityName}")
+                    weatherData
+                } else {
+                    loadCachedWeatherData()
+                }
+            } catch (fallbackError: Exception) {
+                Log.e(TAG, "Both weather APIs failed — loading from cache", fallbackError)
+                loadCachedWeatherData()
+            }
         }
     }
 
@@ -301,6 +335,57 @@ class WeatherRepository(private val context: Context) {
             tempMin       = response.main.tempMin.toInt(),
             pressureHpa   = response.main.pressure,
             cloudsPercent = response.clouds?.all ?: 0,
+            lastUpdatedTime = timeFormat.format(Date())
+        )
+    }
+
+    private fun mapOpenMeteoToWeatherData(
+        curr: OpenMeteoCurrent,
+        lat: Double,
+        lon: Double
+    ): WeatherData {
+        val (desc, icon) = when (curr.weatherCode) {
+            0 -> Pair("Cielo despejado", "01d")
+            1, 2 -> Pair("Parcialmente nublado", "02d")
+            3 -> Pair("Nublado", "04d")
+            45, 48 -> Pair("Niebla", "50d")
+            51, 53, 55 -> Pair("Llovizna", "09d")
+            61, 63, 65, 80, 81, 82 -> Pair("Lluvia", "10d")
+            71, 73, 75 -> Pair("Nieve", "13d")
+            95, 96, 99 -> Pair("Tormenta eléctrica", "11d")
+            else -> Pair("Despejado", "01d")
+        }
+
+        var place = "Ubicación actual"
+        try {
+            if (Geocoder.isPresent()) {
+                val geocoder = Geocoder(context, Locale.getDefault())
+                val addresses = geocoder.getFromLocation(lat, lon, 1)
+                if (!addresses.isNullOrEmpty()) {
+                    place = addresses[0].locality
+                        ?: addresses[0].subAdminArea
+                        ?: addresses[0].adminArea
+                        ?: place
+                }
+            }
+        } catch (_: Exception) {}
+
+        val timeFormat = SimpleDateFormat("hh:mm a", Locale.getDefault())
+        return WeatherData(
+            cityName = place,
+            municipality = place,
+            department = "",
+            country = "",
+            temp = curr.temp.toInt(),
+            feelsLike = curr.temp.toInt(),
+            description = desc,
+            iconCode = icon,
+            humidity = curr.humidity,
+            windSpeedMph = curr.windSpeedKmH * 0.621371,
+            tempMax = curr.temp.toInt() + 2,
+            tempMin = curr.temp.toInt() - 2,
+            pressureHpa = curr.pressure.toInt(),
+            cloudsPercent = if (curr.weatherCode in 1..3) 50 else 10,
             lastUpdatedTime = timeFormat.format(Date())
         )
     }

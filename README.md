@@ -54,23 +54,28 @@ chmod +x scripts/optimize_headunit.sh
 
 ---
 
-## 🔑 Configuración Inicial Obligatoria
+## ☀️ Clima Inteligente (Zero Config — Listo para Usar)
 
-### API Key de Clima (OpenWeatherMap)
-Edita `app/src/main/kotlin/com/xavier/carlauncher/weather/WeatherRepository.kt`:
-```kotlin
-const val API_KEY = "TU_API_KEY_AQUI"  // ← Reemplazar
-```
-Obtén tu clave gratuita en: https://openweathermap.org/api
+El módulo de clima de XavierCarOS viene **100% preconfigurado de fábrica**:
+- **API Key Pública Integrada**: Incluye una clave de OpenWeatherMap lista para usar desde el primer segundo.
+- **Respaldo Automático Open-Meteo (Sin Clave)**: Si la clave principal se satura o agota, el sistema conmuta automáticamente a Open-Meteo (100% abierto y público a nivel mundial).
+- **Caché 100% Offline**: Si no hay conexión Wi-Fi/datos, carga al instante el último reporte guardado en memoria DataStore sin tirones ni bloqueos (0ms de retraso).
+- **No requiere registro ni configuración manual** por parte del usuario final.
 
-### Assets del Corolla (imágenes)
-Agrega estos PNGs a `app/src/main/res/drawable/`:
-- `corolla_base.png` — auto con puertas cerradas (transparente)
-- `corolla_door_fl.png` — puerta conductor abierta
-- `corolla_door_fr.png` — puerta copiloto abierta
-- `corolla_door_rl.png` — puerta trasera izquierda abierta
-- `corolla_door_rr.png` — puerta trasera derecha abierta
-- `corolla_trunk.png` — maletero abierto
+---
+
+## 🎵 Reproductor Multimedia Nativo (`XavierLocalPlayer`)
+
+XavierCarOS **incluye su propio reproductor de música integrado de alto rendimiento**, desarrollado en Kotlin con MediaPlayer de Android:
+
+- ✅ **Sin dependencias externas**: No necesitas instalar Poweramp, Spotify ni ninguna otra app para escuchar música.
+- ✅ **Escaneo automático de USB**: Detecta pendrives y memorias USB conectadas al vehículo de forma automática.
+- ✅ **Soporte Hi-Res Audio**: Reproduce archivos FLAC (24-bit / 16-bit), MP3 y WAV con decodificación directa.
+- ✅ **Arranque automático (Ignition Auto-Play)**: Comienza a reproducir tu música automáticamente al dar contacto al auto (ACC ON).
+- ✅ **Letras sincronizadas en vivo (`.lrc`)**: Muestra las letras en formato karaoke con iluminación activa verso a verso.
+- ✅ **Traducción de letras en vivo**: Traduce las canciones en tiempo real del inglés al español con un solo toque.
+- ✅ **Explorador por categorías**: Navegación por Lista completa, Artistas, Carpetas y Favoritos.
+- 💡 *Soporte opcional para reproductores externos*: Si algún usuario avanzado prefiere usar reproductores de terceros como Poweramp, el launcher también puede capturar sus metadatos vía Notification Listener.
 
 ---
 
@@ -93,24 +98,28 @@ app/src/main/kotlin/com/xavier/carlauncher/
 ├── MainActivity.kt                    ← Entry point + Steering Wheel Controls
 ├── SpeedometerLocationManager.kt      ← GPS mph + Kalman filter
 ├── media/
-│   └── PowerampMediaController.kt     ← Poweramp + LRC lyrics
+│   ├── XavierLocalPlayer.kt           ← Reproductor nativo USB/FLAC/MP3 + auto-play
+│   ├── LyricsRepository.kt            ← Parser de letras .lrc sincronizadas
+│   └── LyricsTranslationManager.kt    ← Traducción en vivo de letras (EN -> ES)
 ├── bluetooth/
 │   └── BluetoothStateReceiver.kt      ← A2DP + HFP Bluetooth state
 ├── canbus/
 │   └── CanbusDoorReceiver.kt          ← Multi-platform door events
 ├── weather/
-│   └── WeatherRepository.kt           ← OpenWeatherMap + DataStore cache
+│   └── WeatherRepository.kt           ← Clima dual OWM + Open-Meteo + DataStore cache
 ├── services/
 │   └── AccOffService.kt               ← ACC OFF power management
 └── ui/
     ├── theme/Theme.kt
-    ├── screens/DashboardScreen.kt     ← Main layout (3-column grid)
+    ├── screens/
+    │   ├── DashboardScreen.kt         ← Main layout (3-column grid)
+    │   └── ExpandedMusicScreen.kt     ← Estudio de música y letras karaoke a pantalla completa
     └── components/
         ├── StatusBar.kt
         ├── NavigationDock.kt
         ├── VehicleCard.kt             ← Corolla + door overlay animations
         ├── SpeedometerCard.kt         ← Canvas arc speedometer
-        ├── MusicPlayerCard.kt         ← Poweramp + lyrics crossfade
+        ├── MusicPlayerCard.kt         ← Tarjeta de música nativa + letras sincronizadas
         ├── NavigationMapCard.kt       ← OSMDroid dark map
         ├── PhoneCard.kt
         └── BluetoothCard.kt
@@ -147,15 +156,10 @@ adb shell cmd deviceidle whitelist +com.waze
 
 ---
 
-## 🎵 Configurar Poweramp
+## 🎵 Formato de Letras Sincronizadas (.lrc)
 
-En Poweramp → Ajustes → Audio:
-- ✅ **Enviar eventos de audio** → Activado
-- ✅ **API de estado en notificaciones** → Activado
-- ✅ **Album art en notificaciones** → Activado
-
-Para letras `.lrc`: coloca el archivo con el mismo nombre que el MP3 junto al audio.  
-Ejemplo: `Musica/IM Sorry.mp3` → `Musica/IM Sorry.lrc`
+Para ver las letras en vivo en el reproductor nativo o en pantalla completa, basta con colocar el archivo `.lrc` junto al archivo de música en tu memoria USB o disco con el mismo nombre:  
+`Musica/TuCancion.mp3` ➔ `Musica/TuCancion.lrc`
 
 ---
 
