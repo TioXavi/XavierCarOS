@@ -200,28 +200,28 @@ class OfflineVoiceController private constructor(private val context: Context) {
             // ── 1. Music: Play ────────────────────────────────────────────────
             text.containsAny("reproducir", "poner música", "pon música", "play", "reanudar", "dale play", "música") &&
             !text.containsAny("siguiente", "anterior", "pausar", "parar", "abrir", "subir", "bajar") -> {
-                XavierLocalPlayer.play()
+                com.xavier.carlauncher.media.PowerampNotificationListener.togglePlayPause(context)
                 _assistantFeedback.value = "▶️ Reproduciendo música"
                 voiceAssistant.speak("Reproduciendo tu música.")
             }
 
             // ── 2. Music: Pause / Stop ─────────────────────────────────────────
             text.containsAny("pausar", "pausa", "detener", "parar", "para la música", "stop", "silencia la música") -> {
-                XavierLocalPlayer.pause()
+                com.xavier.carlauncher.media.PowerampNotificationListener.togglePlayPause(context)
                 _assistantFeedback.value = "⏸️ Música en pausa"
                 voiceAssistant.speak("Música pausada.")
             }
 
             // ── 3. Music: Next Track ──────────────────────────────────────────
             text.containsAny("siguiente", "pasa", "cambiar", "avanzar", "otra canción", "adelantar", "next") -> {
-                XavierLocalPlayer.next()
+                com.xavier.carlauncher.media.PowerampNotificationListener.skipToNext(context)
                 _assistantFeedback.value = "⏭️ Siguiente canción"
                 voiceAssistant.speak("Siguiente canción.")
             }
 
             // ── 4. Music: Previous Track ──────────────────────────────────────
             text.containsAny("anterior", "canción anterior", "atrás", "regresar", "previa", "atras") -> {
-                XavierLocalPlayer.previous()
+                com.xavier.carlauncher.media.PowerampNotificationListener.skipToPrevious(context)
                 _assistantFeedback.value = "⏮️ Canción anterior"
                 voiceAssistant.speak("Canción anterior.")
             }

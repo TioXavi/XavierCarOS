@@ -46,6 +46,7 @@ import com.xavier.carlauncher.media.LyricsTranslationManager
 import com.xavier.carlauncher.system.AutomotiveIntentResolver
 import com.xavier.carlauncher.media.MediaState
 import com.xavier.carlauncher.media.PlaybackMode
+import com.xavier.carlauncher.media.PowerampNotificationListener
 import com.xavier.carlauncher.media.XavierLocalPlayer
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -74,7 +75,7 @@ fun ExpandedMusicScreen(
     val activeQueueTitle by XavierLocalPlayer.queueTitleFlow.collectAsState()
 
     // ── Local Screen UI States ───────────────────────────────────────────────
-    var currentSource by remember { mutableStateOf(AudioSource.LOCAL) }
+    val currentSource by PowerampNotificationListener.currentSource.collectAsState()
     var searchQuery by remember { mutableStateOf("") }
     var activeLibraryTab by remember { mutableStateOf(0) } // 0: Lista, 1: Artistas, 2: Favoritos, 3: Carpetas
     var selectedArtistFilter by remember { mutableStateOf<String?>(null) }
@@ -198,6 +199,7 @@ fun ExpandedMusicScreen(
                         ) {
                             listOf(
                                 Triple(AudioSource.LOCAL, "Local", Icons.Default.Album),
+                                Triple(AudioSource.ONLINE, "Online", Icons.Default.Cloud),
                                 Triple(AudioSource.BLUETOOTH, "BT", Icons.Default.Bluetooth),
                                 Triple(AudioSource.USB, "USB", Icons.Default.Usb)
                             ).forEach { (source, label, icon) ->
@@ -208,11 +210,17 @@ fun ExpandedMusicScreen(
                                         .clip(RoundedCornerShape(8.dp))
                                         .background(if (isActive) Color(0xFF9333EA) else Color.Transparent)
                                         .clickable {
-                                            currentSource = source
-                                            if (source == AudioSource.BLUETOOTH) {
-                                                AutomotiveIntentResolver.launchSafely(context, AutomotiveIntentResolver.getPhoneIntent(context))
-                                            } else {
-                                                XavierLocalPlayer.play()
+                                            PowerampNotificationListener.setSource(source)
+                                            when (source) {
+                                                AudioSource.BLUETOOTH -> {
+                                                    AutomotiveIntentResolver.launchSafely(context, AutomotiveIntentResolver.getPhoneIntent(context))
+                                                }
+                                                AudioSource.ONLINE -> {
+                                                    PowerampNotificationListener.togglePlayPause(context)
+                                                }
+                                                else -> {
+                                                    XavierLocalPlayer.play()
+                                                }
                                             }
                                         }
                                         .padding(vertical = 4.dp),
@@ -374,7 +382,11 @@ fun ExpandedMusicScreen(
                                 seekPositionMs = newVal.toLong()
                             },
                             onValueChangeFinished = {
-                                XavierLocalPlayer.seekTo(seekPositionMs)
+                                if (currentSource == AudioSource.ONLINE || currentSource == AudioSource.BLUETOOTH) {
+                                    PowerampNotificationListener.seekTo(context, seekPositionMs)
+                                } else {
+                                    XavierLocalPlayer.seekTo(seekPositionMs)
+                                }
                                 isUserSeeking = false
                             },
                             valueRange = 0f..mediaState.durationMs.coerceAtLeast(1L).toFloat(),
@@ -431,7 +443,13 @@ fun ExpandedMusicScreen(
 
                             // Anterior
                             IconButton(
-                                onClick = { XavierLocalPlayer.skipToPrevious() },
+                                onClick = {
+                                    if (currentSource == AudioSource.ONLINE || currentSource == AudioSource.BLUETOOTH) {
+                                        PowerampNotificationListener.skipToPrevious(context)
+                                    } else {
+                                        XavierLocalPlayer.skipToPrevious()
+                                    }
+                                },
                                 modifier = Modifier
                                     .size(38.dp)
                                     .background(Color(0xFF0F0B1E).copy(alpha = 0.6f), CircleShape)
@@ -451,10 +469,14 @@ fun ExpandedMusicScreen(
                                     .shadow(16.dp, CircleShape)
                                     .background(Color.White, CircleShape)
                                     .clickable {
-                                        if (mediaState.isPlaying) {
-                                            XavierLocalPlayer.pause()
+                                        if (currentSource == AudioSource.ONLINE || currentSource == AudioSource.BLUETOOTH) {
+                                            PowerampNotificationListener.togglePlayPause(context)
                                         } else {
-                                            XavierLocalPlayer.play()
+                                            if (mediaState.isPlaying) {
+                                                XavierLocalPlayer.pause()
+                                            } else {
+                                                XavierLocalPlayer.play()
+                                            }
                                         }
                                     },
                                 contentAlignment = Alignment.Center
@@ -469,7 +491,13 @@ fun ExpandedMusicScreen(
 
                             // Siguiente
                             IconButton(
-                                onClick = { XavierLocalPlayer.skipToNext() },
+                                onClick = {
+                                    if (currentSource == AudioSource.ONLINE || currentSource == AudioSource.BLUETOOTH) {
+                                        PowerampNotificationListener.skipToNext(context)
+                                    } else {
+                                        XavierLocalPlayer.skipToNext()
+                                    }
+                                },
                                 modifier = Modifier
                                     .size(38.dp)
                                     .background(Color(0xFF0F0B1E).copy(alpha = 0.6f), CircleShape)
@@ -512,7 +540,14 @@ fun ExpandedMusicScreen(
                                 modifier = Modifier
                                     .clip(RoundedCornerShape(6.dp))
                                     .background(Color(0xFF1E1438))
-                                    .clickable { XavierLocalPlayer.skipSeconds(-10) }
+                                    .clickable {
+                                        if (currentSource == AudioSource.ONLINE || currentSource == AudioSource.BLUETOOTH) {
+                                            val target = (effectiveProgressMs - 10000L).coerceAtLeast(0L)
+                                            PowerampNotificationListener.seekTo(context, target)
+                                        } else {
+                                            XavierLocalPlayer.skipSeconds(-10)
+                                        }
+                                    }
                                     .padding(horizontal = 7.dp, vertical = 4.dp)
                             ) {
                                 Text("-10s", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color.White)
@@ -548,7 +583,14 @@ fun ExpandedMusicScreen(
                                 modifier = Modifier
                                     .clip(RoundedCornerShape(6.dp))
                                     .background(Color(0xFF1E1438))
-                                    .clickable { XavierLocalPlayer.skipSeconds(10) }
+                                    .clickable {
+                                        if (currentSource == AudioSource.ONLINE || currentSource == AudioSource.BLUETOOTH) {
+                                            val target = (effectiveProgressMs + 10000L).coerceAtMost(mediaState.durationMs)
+                                            PowerampNotificationListener.seekTo(context, target)
+                                        } else {
+                                            XavierLocalPlayer.skipSeconds(10)
+                                        }
+                                    }
                                     .padding(horizontal = 7.dp, vertical = 4.dp)
                             ) {
                                 Text("+10s", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color.White)
@@ -1363,7 +1405,11 @@ fun ExpandedMusicScreen(
                                         .clip(RoundedCornerShape(12.dp))
                                         .background(lyricBrush)
                                         .clickable {
-                                            XavierLocalPlayer.seekTo(entry.timeMs)
+                                            if (currentSource == AudioSource.ONLINE || currentSource == AudioSource.BLUETOOTH) {
+                                                PowerampNotificationListener.seekTo(context, entry.timeMs)
+                                            } else {
+                                                XavierLocalPlayer.seekTo(entry.timeMs)
+                                            }
                                         }
                                         .padding(horizontal = 12.dp, vertical = 8.dp)
                                 ) {

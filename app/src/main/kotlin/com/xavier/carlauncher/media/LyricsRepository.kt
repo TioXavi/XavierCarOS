@@ -37,6 +37,8 @@ object LyricsRepository {
         .readTimeout(8, TimeUnit.SECONDS)
         .build()
 
+    val okHttpClient: OkHttpClient get() = client
+
     private val memoryCache = mutableMapOf<String, List<LyricEntry>>()
     private val preloadedFiles = Collections.synchronizedSet(mutableSetOf<String>())
     private val preloadScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
@@ -210,7 +212,10 @@ object LyricsRepository {
         artist: String,
         playPath: String
     ): List<LyricEntry> {
-        // Check alongside audio file if path provided
+        val cleanT = sanitizeFileName(title).lowercase()
+        val cleanA = sanitizeFileName(artist).lowercase()
+
+        // 1. Check alongside audio file if path provided
         if (playPath.isNotBlank()) {
             val audioFile = File(playPath)
             if (audioFile.exists()) {
@@ -224,14 +229,46 @@ object LyricsRepository {
             }
         }
 
-        // Check internal disk cache
+        // 2. Check internal disk cache
         val cacheDir = File(context.cacheDir, "lyrics")
-        val cacheFile = File(cacheDir, "${sanitizeFileName(title)}_${sanitizeFileName(artist)}.lrc")
+        val cacheFile = File(cacheDir, "${cleanT}_${cleanA}.lrc")
         if (cacheFile.exists() && cacheFile.length() > 0) {
             try {
                 val parsed = parseLrc(cacheFile.readText())
                 if (parsed.isNotEmpty()) return parsed
             } catch (_: Exception) {}
+        }
+
+        // 3. Check public storage locations (/sdcard/Music/Lyrics, etc.)
+        val externalDirs = listOf(
+            File("/sdcard/Music/Lyrics"),
+            File(context.getExternalFilesDir(null), "Lyrics"),
+            File("/sdcard/Music"),
+            File("/sdcard/Download")
+        )
+
+        for (dir in externalDirs) {
+            if (dir.exists() && dir.isDirectory) {
+                val directFile = File(dir, "${cleanT}_${cleanA}.lrc")
+                if (directFile.exists() && directFile.length() > 0) {
+                    try {
+                        val parsed = parseLrc(directFile.readText())
+                        if (parsed.isNotEmpty()) return parsed
+                    } catch (_: Exception) {}
+                }
+                // Try fuzzy file match
+                val matching = dir.listFiles { f ->
+                    if (!f.name.endsWith(".lrc", ignoreCase = true)) return@listFiles false
+                    val n = f.nameWithoutExtension.lowercase().replace(Regex("""[^a-z0-9]"""), "")
+                    n.contains(cleanT) && (cleanA.isBlank() || n.contains(cleanA))
+                }
+                if (!matching.isNullOrEmpty()) {
+                    try {
+                        val parsed = parseLrc(matching[0].readText())
+                        if (parsed.isNotEmpty()) return parsed
+                    } catch (_: Exception) {}
+                }
+            }
         }
 
         return emptyList()
@@ -345,9 +382,18 @@ object LyricsRepository {
         val normResArtist = normalizeString(resArtist)
 
         if (normTargetArtist.isNotBlank() && normResArtist.isNotBlank()) {
+            val targetParts = targetArtist.split(Regex("""[,&/]|\bfeat\.?\b|\bft\.?\b""", RegexOption.IGNORE_CASE))
+                .map { normalizeString(it) }.filter { it.length >= 3 }
+            val resParts = resArtist.split(Regex("""[,&/]|\bfeat\.?\b|\bft\.?\b""", RegexOption.IGNORE_CASE))
+                .map { normalizeString(it) }.filter { it.length >= 3 }
+
+            val anyPartMatches = targetParts.any { tp -> resParts.any { rp -> tp == rp || tp.contains(rp) || rp.contains(tp) } }
+
             val artistMatches = normTargetArtist == normResArtist ||
                     normTargetArtist.contains(normResArtist) ||
-                    normResArtist.contains(normTargetArtist)
+                    normResArtist.contains(normTargetArtist) ||
+                    anyPartMatches
+
             if (!artistMatches) return false
         }
 
@@ -368,20 +414,32 @@ object LyricsRepository {
         lyrics: List<LyricEntry>
     ) {
         try {
-            val cacheDir = File(context.cacheDir, "lyrics")
-            if (!cacheDir.exists()) cacheDir.mkdirs()
-
-            val cacheFile = File(cacheDir, "${sanitizeFileName(title)}_${sanitizeFileName(artist)}.lrc")
+            val cleanT = sanitizeFileName(title)
+            val cleanA = sanitizeFileName(artist)
+            val fileName = "${cleanT}_${cleanA}.lrc"
 
             val sb = StringBuilder()
             for (entry in lyrics) {
                 val mins = entry.timeMs / 60_000
                 val secs = (entry.timeMs % 60_000) / 1000
                 val ms = (entry.timeMs % 1000) / 10
-                sb.append(String.format("[%02d:%02d.%02d]%s\n", mins, secs, ms, entry.text))
+                sb.append(String.format(java.util.Locale.US, "[%02d:%02d.%02d]%s\n", mins, secs, ms, entry.text))
             }
-            cacheFile.writeText(sb.toString())
-            Log.i(TAG, "Cached ${lyrics.size} synced lyric lines to ${cacheFile.name}")
+            val content = sb.toString()
+
+            // 1. Internal cache directory
+            val cacheDir = File(context.cacheDir, "lyrics")
+            if (!cacheDir.exists()) cacheDir.mkdirs()
+            File(cacheDir, fileName).writeText(content)
+
+            // 2. Public /sdcard/Music/Lyrics directory for persistent offline backup
+            try {
+                val publicDir = File("/sdcard/Music/Lyrics")
+                if (!publicDir.exists()) publicDir.mkdirs()
+                File(publicDir, fileName).writeText(content)
+            } catch (_: Exception) {}
+
+            Log.i(TAG, "Cached ${lyrics.size} synced lyric lines to $fileName")
         } catch (e: Exception) {
             Log.w(TAG, "Failed to save lyrics to disk cache", e)
         }
@@ -414,14 +472,14 @@ object LyricsRepository {
 
     fun cleanTrackString(raw: String): String {
         var res = raw
-        // Remove parenthesized or bracketed noise: (1998 Remastered), [Official Video], (Remastered 2015), (Single Version), [Clean]
-        res = res.replace(Regex("""\s*[\(\[\{][^\)\]\}]*(?:official|video|audio|remix|hd|4k|lyric|lyrics|hq|dembow|version|remaster|single|album|feat|ft|live)[^\)\]\}]*[\)\]\}]""", RegexOption.IGNORE_CASE), "")
-        // Remove trailing dash noise: - 2015 Remaster, - Remastered, - Official Audio
-        res = res.replace(Regex("""\s*-\s*(?:official|video|audio|remix|hd|4k|remaster|remastered|live).*""", RegexOption.IGNORE_CASE), "")
+        // Remove parenthesized or bracketed noise: (Official Video), [Official Audio], (Visualizer), (Remastered 2021), etc.
+        res = res.replace(Regex("""\s*[\(\[\{][^\)\]\}]*(?:official|video|audio|remix|hd|4k|lyric|lyrics|hq|dembow|version|remaster|single|album|feat|ft|live|prod|with|visualizer|clip)[^\)\]\}]*[\)\]\}]""", RegexOption.IGNORE_CASE), "")
+        // Remove trailing dash noise: - 2015 Remaster, - Remastered, - Official Audio, - Single, - Remix
+        res = res.replace(Regex("""\s*-\s*(?:official|video|audio|remix|hd|4k|remaster|remastered|live|single|album|visualizer).*""", RegexOption.IGNORE_CASE), "")
         // Remove standalone noise phrases: Album Version, Single Version, Remastered, 2015 Remaster
         res = res.replace(Regex("""\b(?:album version|single version|\d{4} remaster(?:ed)?|remastered \d{4}|remastered|remaster)\b""", RegexOption.IGNORE_CASE), "")
-        // Remove feat. / ft.
-        res = res.replace(Regex("""\b(?:feat\.|ft\.).*""", RegexOption.IGNORE_CASE), "")
+        // Remove feat. / ft. / featuring / with
+        res = res.replace(Regex("""\b(?:feat\.|ft\.|featuring|with)\s+.*""", RegexOption.IGNORE_CASE), "")
         // Clean empty parens
         res = res.replace(Regex("""[\(\[\{]\s*[\)\]\}]"""), "")
         return res.replace("_", " ").trim()

@@ -108,6 +108,8 @@ object XavierLocalPlayer {
     var currentIndex: Int = 0
         private set
 
+    val isPlaying: Boolean get() = mediaPlayer?.isPlaying == true
+
     var isPrepared: Boolean = false
         private set
 

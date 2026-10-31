@@ -31,8 +31,8 @@ Tienes **dos formas de hacerlo**:
 ### ✨ Características que tendrás en tu vehículo:
 1. **Velocidad Extrema (60 FPS):** Optimizaciones profundas de GPU y sistema que eliminan los tirones y el molesto mensaje de *"La aplicación no responde"* (cero ANRs).
 2. **Velocímetro GPS con Brújula Dinámica:** Detecta tu velocidad real por satélite y orienta el mapa dinámicamente apuntando siempre hacia el frente de la carretera por donde conduces.
-3. **Reproductor Nativo con Auto-Play:** Conecta tu memoria USB y la música arrancará sola automáticamente cada vez que enciendas el carro (ACC ON), sin necesidad de Poweramp ni Spotify.
-4. **Letras Karaoke en Vivo (`.lrc`) y Traducción:** Pantalla de música ampliada con letras sincronizadas que se iluminan al ritmo de la canción y traducción instantánea de inglés a español con un toque.
+3. **Reproductor Híbrido Universal (USB + Spotify / YouTube Music):** Funciona tanto con memorias USB locales como con las principales apps de streaming online (Spotify, YouTube Music, Apple Music, Deezer, Tidal, Amazon Music). Muestra portadas en HD, título, artista, duración y permite pausar, cambiar de canción y adelantar desde la pantalla, los mandos del volante (timón) o por comandos de voz.
+4. **Letras Karaoke en Vivo con Descarga Automática:** Si estás reproduciendo música en Spotify, YouTube Music o USB y no tienes el archivo `.lrc`, el sistema busca y descarga las letras sincronizadas en tiempo real automáticamente desde la base de datos abierta LRCLIB y las guarda en la memoria del vehículo (`/sdcard/Music/Lyrics/`) para que funcionen siempre offline. Incluye traducción instantánea de inglés a español y salto en la canción tocando cualquier verso.
 5. **Clima Inteligente (Zero-Config):** Actualización automática cada 10 minutos con respaldo dual (OpenWeatherMap + Open-Meteo) o modo 100% offline sin internet. No requiere crear cuentas ni ingresar claves.
 6. **Saludo Personalizado:** Mantén presionado *"Hola, Xavier"* durante 1 segundo para escribir tu propio nombre o apodo.
 7. **100% Seguro y Reversible:** Nada de lo que hacemos daña la radio. Siempre puedes volver al launcher de fábrica cuando quieras.

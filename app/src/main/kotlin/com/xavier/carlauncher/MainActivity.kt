@@ -216,58 +216,28 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun handleTrackNext() {
-        val isBtConnected = com.xavier.carlauncher.bluetooth.BluetoothViewModel.isDeviceConnected
-        val isBtActive = com.xavier.carlauncher.media.PowerampNotificationListener.currentSource.value == com.xavier.carlauncher.media.AudioSource.BLUETOOTH
-        android.util.Log.i("MainActivity", "Hardware SWC NEXT pressed: isBtActive=$isBtActive, isBtConnected=$isBtConnected")
-        if (isBtConnected && isBtActive) {
-            com.xavier.carlauncher.media.FytMusicService.sendBtNext(applicationContext)
-        } else {
-            com.xavier.carlauncher.media.XavierLocalPlayer.next()
-        }
+        android.util.Log.i("MainActivity", "Hardware SWC NEXT pressed")
+        com.xavier.carlauncher.media.PowerampNotificationListener.skipToNext(applicationContext)
     }
 
     private fun handleTrackPrev() {
-        val isBtConnected = com.xavier.carlauncher.bluetooth.BluetoothViewModel.isDeviceConnected
-        val isBtActive = com.xavier.carlauncher.media.PowerampNotificationListener.currentSource.value == com.xavier.carlauncher.media.AudioSource.BLUETOOTH
-        android.util.Log.i("MainActivity", "Hardware SWC PREV pressed: isBtActive=$isBtActive, isBtConnected=$isBtConnected")
-        if (isBtConnected && isBtActive) {
-            com.xavier.carlauncher.media.FytMusicService.sendBtPrev(applicationContext)
-        } else {
-            com.xavier.carlauncher.media.XavierLocalPlayer.previous()
-        }
+        android.util.Log.i("MainActivity", "Hardware SWC PREV pressed")
+        com.xavier.carlauncher.media.PowerampNotificationListener.skipToPrevious(applicationContext)
     }
 
     private fun handlePlayPause() {
-        val isBtConnected = com.xavier.carlauncher.bluetooth.BluetoothViewModel.isDeviceConnected
-        val isBtActive = com.xavier.carlauncher.media.PowerampNotificationListener.currentSource.value == com.xavier.carlauncher.media.AudioSource.BLUETOOTH
-        android.util.Log.i("MainActivity", "Hardware SWC PLAY_PAUSE pressed: isBtActive=$isBtActive, isBtConnected=$isBtConnected")
-        if (isBtConnected && isBtActive) {
-            com.xavier.carlauncher.media.FytMusicService.sendBtPlayPause(applicationContext)
-        } else {
-            com.xavier.carlauncher.media.XavierLocalPlayer.togglePlayPause()
-        }
+        android.util.Log.i("MainActivity", "Hardware SWC PLAY_PAUSE pressed")
+        com.xavier.carlauncher.media.PowerampNotificationListener.togglePlayPause(applicationContext)
     }
 
     private fun handlePlay() {
-        val isBtConnected = com.xavier.carlauncher.bluetooth.BluetoothViewModel.isDeviceConnected
-        val isBtActive = com.xavier.carlauncher.media.PowerampNotificationListener.currentSource.value == com.xavier.carlauncher.media.AudioSource.BLUETOOTH
-        android.util.Log.i("MainActivity", "Hardware SWC PLAY pressed: isBtActive=$isBtActive, isBtConnected=$isBtConnected")
-        if (isBtConnected && isBtActive) {
-            com.xavier.carlauncher.media.FytMusicService.sendBtPlayPause(applicationContext)
-        } else {
-            com.xavier.carlauncher.media.XavierLocalPlayer.play()
-        }
+        android.util.Log.i("MainActivity", "Hardware SWC PLAY pressed")
+        com.xavier.carlauncher.media.PowerampNotificationListener.togglePlayPause(applicationContext)
     }
 
     private fun handlePause() {
-        val isBtConnected = com.xavier.carlauncher.bluetooth.BluetoothViewModel.isDeviceConnected
-        val isBtActive = com.xavier.carlauncher.media.PowerampNotificationListener.currentSource.value == com.xavier.carlauncher.media.AudioSource.BLUETOOTH
-        android.util.Log.i("MainActivity", "Hardware SWC PAUSE pressed: isBtActive=$isBtActive, isBtConnected=$isBtConnected")
-        if (isBtConnected && isBtActive) {
-            com.xavier.carlauncher.media.FytMusicService.sendBtPlayPause(applicationContext)
-        } else {
-            com.xavier.carlauncher.media.XavierLocalPlayer.pause()
-        }
+        android.util.Log.i("MainActivity", "Hardware SWC PAUSE pressed")
+        com.xavier.carlauncher.media.PowerampNotificationListener.togglePlayPause(applicationContext)
     }
 
     override fun onResume() {

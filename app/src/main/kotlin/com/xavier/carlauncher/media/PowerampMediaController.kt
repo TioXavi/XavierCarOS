@@ -18,6 +18,7 @@ import android.os.Build
 import android.os.Environment
 import android.os.Handler
 import android.os.Looper
+import android.os.SystemClock
 import android.service.notification.NotificationListenerService
 import android.service.notification.StatusBarNotification
 import android.util.Log
@@ -33,6 +34,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import okhttp3.Request
 import java.io.File
 import java.io.InputStream
 
@@ -71,7 +74,8 @@ data class MediaState(
 enum class AudioSource {
     LOCAL,
     BLUETOOTH,
-    USB
+    USB,
+    ONLINE
 }
 
 // ── Universal Media & Notification Listener Service ──────────────────────────
@@ -109,7 +113,13 @@ class PowerampNotificationListener : NotificationListenerService() {
         }
 
         fun toggleSource() {
-            _currentSource.value = if (_currentSource.value == AudioSource.LOCAL) AudioSource.BLUETOOTH else AudioSource.LOCAL
+            _currentSource.value = when (_currentSource.value) {
+                AudioSource.LOCAL, AudioSource.USB -> {
+                    if (activeController != null) AudioSource.ONLINE else AudioSource.BLUETOOTH
+                }
+                AudioSource.ONLINE -> AudioSource.BLUETOOTH
+                AudioSource.BLUETOOTH -> AudioSource.LOCAL
+            }
             Log.i(TAG, "Audio source toggled to: ${_currentSource.value}")
         }
 
@@ -297,15 +307,38 @@ class PowerampNotificationListener : NotificationListenerService() {
         fun togglePlayPause(context: Context) {
             val source = _currentSource.value
             val isBtConnected = com.xavier.carlauncher.bluetooth.BluetoothViewModel.isDeviceConnected
+            val onlineController = activeController
 
-            Log.i(TAG, "togglePlayPause invoked (source=$source, isBtConnected=$isBtConnected)")
+            Log.i(TAG, "togglePlayPause invoked (source=$source, isBtConnected=$isBtConnected, onlineController=${onlineController?.packageName})")
 
+            // 1. Bluetooth Audio
             if (isBtConnected && (source == AudioSource.BLUETOOTH || _mediaState.value.playerName == "Bluetooth Audio")) {
                 setOptimisticPlaying(!_mediaState.value.isPlaying)
                 FytMusicService.sendBtPlayPause(context)
                 return
             }
 
+            // 2. Online / External Player (Spotify, YouTube Music, Apple Music, Deezer, etc.)
+            if (source == AudioSource.ONLINE || (onlineController != null && _mediaState.value.playerName != "Música Local" && _mediaState.value.playerName != "Música Pantalla")) {
+                if (onlineController != null) {
+                    val isPlaying = onlineController.playbackState?.state == PlaybackState.STATE_PLAYING
+                    setOptimisticPlaying(!isPlaying)
+                    try {
+                        if (isPlaying) {
+                            onlineController.transportControls.pause()
+                        } else {
+                            onlineController.transportControls.play()
+                        }
+                        return
+                    } catch (e: Exception) {
+                        Log.w(TAG, "Failed transportControls play/pause, falling back to key", e)
+                    }
+                }
+                dispatchHardwareMediaKey(context, KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE)
+                return
+            }
+
+            // 3. Local Player (USB / Storage)
             _currentSource.value = AudioSource.LOCAL
             XavierLocalPlayer.togglePlayPause()
         }
@@ -313,14 +346,31 @@ class PowerampNotificationListener : NotificationListenerService() {
         fun skipToNext(context: Context) {
             val source = _currentSource.value
             val isBtConnected = com.xavier.carlauncher.bluetooth.BluetoothViewModel.isDeviceConnected
+            val onlineController = activeController
 
-            Log.i(TAG, "skipToNext invoked (source=$source, isBtConnected=$isBtConnected)")
+            Log.i(TAG, "skipToNext invoked (source=$source, isBtConnected=$isBtConnected, onlineController=${onlineController?.packageName})")
 
+            // 1. Bluetooth Audio
             if (isBtConnected && (source == AudioSource.BLUETOOTH || _mediaState.value.playerName == "Bluetooth Audio")) {
                 FytMusicService.sendBtNext(context)
                 return
             }
 
+            // 2. Online / External Player
+            if (source == AudioSource.ONLINE || (onlineController != null && _mediaState.value.playerName != "Música Local" && _mediaState.value.playerName != "Música Pantalla")) {
+                if (onlineController != null) {
+                    try {
+                        onlineController.transportControls.skipToNext()
+                        return
+                    } catch (e: Exception) {
+                        Log.w(TAG, "Failed transportControls skipToNext, falling back to key", e)
+                    }
+                }
+                dispatchHardwareMediaKey(context, KeyEvent.KEYCODE_MEDIA_NEXT)
+                return
+            }
+
+            // 3. Local Player
             _currentSource.value = AudioSource.LOCAL
             XavierLocalPlayer.skipToNext()
         }
@@ -328,14 +378,31 @@ class PowerampNotificationListener : NotificationListenerService() {
         fun skipToPrevious(context: Context) {
             val source = _currentSource.value
             val isBtConnected = com.xavier.carlauncher.bluetooth.BluetoothViewModel.isDeviceConnected
+            val onlineController = activeController
 
-            Log.i(TAG, "skipToPrevious invoked (source=$source, isBtConnected=$isBtConnected)")
+            Log.i(TAG, "skipToPrevious invoked (source=$source, isBtConnected=$isBtConnected, onlineController=${onlineController?.packageName})")
 
+            // 1. Bluetooth Audio
             if (isBtConnected && (source == AudioSource.BLUETOOTH || _mediaState.value.playerName == "Bluetooth Audio")) {
                 FytMusicService.sendBtPrev(context)
                 return
             }
 
+            // 2. Online / External Player
+            if (source == AudioSource.ONLINE || (onlineController != null && _mediaState.value.playerName != "Música Local" && _mediaState.value.playerName != "Música Pantalla")) {
+                if (onlineController != null) {
+                    try {
+                        onlineController.transportControls.skipToPrevious()
+                        return
+                    } catch (e: Exception) {
+                        Log.w(TAG, "Failed transportControls skipToPrevious, falling back to key", e)
+                    }
+                }
+                dispatchHardwareMediaKey(context, KeyEvent.KEYCODE_MEDIA_PREVIOUS)
+                return
+            }
+
+            // 3. Local Player
             _currentSource.value = AudioSource.LOCAL
             XavierLocalPlayer.skipToPrevious()
         }
@@ -343,10 +410,26 @@ class PowerampNotificationListener : NotificationListenerService() {
         fun seekTo(context: Context, positionMs: Long) {
             val source = _currentSource.value
             val isBtConnected = com.xavier.carlauncher.bluetooth.BluetoothViewModel.isDeviceConnected
+            val onlineController = activeController
 
             if (isBtConnected && (source == AudioSource.BLUETOOTH || _mediaState.value.playerName == "Bluetooth Audio")) {
                 activeController?.transportControls?.seekTo(positionMs)
                 return
+            }
+
+            if (source == AudioSource.ONLINE || (onlineController != null && _mediaState.value.playerName != "Música Local" && _mediaState.value.playerName != "Música Pantalla")) {
+                if (onlineController != null) {
+                    try {
+                        onlineController.transportControls.seekTo(positionMs)
+                        _mediaState.value = _mediaState.value.copy(
+                            progressMs = positionMs,
+                            lyricsLine = getCurrentLyricLine(parsedLyrics, positionMs)
+                        )
+                        return
+                    } catch (e: Exception) {
+                        Log.w(TAG, "Failed transportControls seekTo", e)
+                    }
+                }
             }
 
             _currentSource.value = AudioSource.LOCAL
@@ -492,21 +575,26 @@ class PowerampNotificationListener : NotificationListenerService() {
             }
 
             // Fallback: Query online LRCLIB database via LyricsRepository
-            instance?.let { ctx ->
-                CoroutineScope(Dispatchers.IO).launch {
-                    try {
-                        val lyrics = LyricsRepository.getOrFetchLyrics(ctx, title, artist)
-                        if (lyrics.isNotEmpty()) {
-                            parsedLyrics = lyrics
-                            _mediaState.value = _mediaState.value.copy(
-                                fullLyrics = lyrics,
-                                hasLyrics = true
-                            )
-                            Log.i(TAG, "Loaded ${lyrics.size} synchronized lyrics from LRCLIB for '$title' by '$artist'")
+            val ctx = instance?.applicationContext ?: return
+            CoroutineScope(Dispatchers.IO).launch {
+                try {
+                    val lyrics = LyricsRepository.getOrFetchLyrics(ctx, title, artist)
+                    if (lyrics.isNotEmpty()) {
+                        withContext(Dispatchers.Main) {
+                            val cur = _mediaState.value
+                            if (cur.title.isBlank() || cur.title.contains(title, ignoreCase = true) || title.contains(cur.title, ignoreCase = true)) {
+                                parsedLyrics = lyrics
+                                _mediaState.value = cur.copy(
+                                    fullLyrics = lyrics,
+                                    hasLyrics = true,
+                                    lyricsLine = getCurrentLyricLine(lyrics, cur.progressMs)
+                                )
+                                Log.i(TAG, "Loaded ${lyrics.size} synchronized lyrics from LRCLIB for '$title' by '$artist'")
+                            }
                         }
-                    } catch (e: Exception) {
-                        Log.w(TAG, "Cannot fetch online lyrics for BT track '$title'", e)
                     }
+                } catch (e: Exception) {
+                    Log.w(TAG, "Cannot fetch online lyrics for track '$title'", e)
                 }
             }
         }
@@ -677,10 +765,15 @@ class PowerampNotificationListener : NotificationListenerService() {
             }
         }
 
-        // 2. Select preferred media player for other sessions (excluding dummy com.syu.music and bluetooth)
-        val nonBtControllers = controllers.filter { !it.packageName.contains("bluetooth", ignoreCase = true) && it.packageName != "com.syu.music" }
-        val preferred = nonBtControllers.firstOrNull { it.playbackState?.state == PlaybackState.STATE_PLAYING }
-            ?: nonBtControllers.firstOrNull()
+        // 2. Select preferred media player for other sessions (Spotify, YouTube Music, Apple Music, Deezer, etc.)
+        val externalControllers = controllers.filter {
+            !it.packageName.contains("bluetooth", ignoreCase = true) &&
+            it.packageName != "com.syu.music" &&
+            it.packageName != (instance?.packageName ?: "")
+        }
+
+        val preferred = externalControllers.firstOrNull { it.playbackState?.state == PlaybackState.STATE_PLAYING }
+            ?: externalControllers.firstOrNull()
 
         if (preferred != null) {
             if (activeController?.sessionToken != preferred.sessionToken) {
@@ -688,7 +781,10 @@ class PowerampNotificationListener : NotificationListenerService() {
                 activeController = preferred
                 preferred.registerCallback(controllerCallback, mainHandler)
 
-                Log.i(TAG, "Bound to active media player: ${preferred.packageName}")
+                Log.i(TAG, "Bound to active media player: ${preferred.packageName} (playing=${preferred.playbackState?.state == PlaybackState.STATE_PLAYING})")
+                handleUniversalMetadata(preferred.metadata, preferred.packageName)
+                handleUniversalPlaybackState(preferred.playbackState)
+            } else {
                 handleUniversalMetadata(preferred.metadata, preferred.packageName)
                 handleUniversalPlaybackState(preferred.playbackState)
             }
@@ -787,7 +883,7 @@ class PowerampNotificationListener : NotificationListenerService() {
             ?: ""
         val album = metadata.getString(MediaMetadata.METADATA_KEY_ALBUM) ?: ""
 
-        val albumArt: Bitmap? = metadata.getBitmap(MediaMetadata.METADATA_KEY_ALBUM_ART)
+        var albumArt: Bitmap? = metadata.getBitmap(MediaMetadata.METADATA_KEY_ALBUM_ART)
             ?: metadata.getBitmap(MediaMetadata.METADATA_KEY_ART)
 
         val duration = metadata.getLong(MediaMetadata.METADATA_KEY_DURATION)
@@ -799,15 +895,66 @@ class PowerampNotificationListener : NotificationListenerService() {
 
         val friendlyPlayerName = when {
             pkg?.contains("spotify", ignoreCase = true) == true -> "Spotify"
-            pkg?.contains("youtube", ignoreCase = true) == true -> "YouTube Music"
+            pkg?.contains("youtube", ignoreCase = true) == true || pkg?.contains("ytmusic", ignoreCase = true) == true -> "YouTube Music"
+            pkg?.contains("apple.android.music", ignoreCase = true) == true -> "Apple Music"
             pkg?.contains("maxmpz", ignoreCase = true) == true -> "Poweramp"
-            pkg?.contains("apple", ignoreCase = true) == true -> "Apple Music"
+            pkg?.contains("deezer", ignoreCase = true) == true -> "Deezer"
+            pkg?.contains("tidal", ignoreCase = true) == true -> "Tidal"
+            pkg?.contains("amazon.mp3", ignoreCase = true) == true -> "Amazon Music"
+            pkg?.contains("soundcloud", ignoreCase = true) == true -> "SoundCloud"
             pkg?.contains("vlc", ignoreCase = true) == true -> "VLC"
             pkg?.contains("bluetooth", ignoreCase = true) == true -> "Bluetooth Audio"
-            else -> pkg?.substringAfterLast('.') ?: "Música"
+            else -> {
+                val appLabel = try {
+                    pkg?.let { packageManager.getApplicationLabel(packageManager.getApplicationInfo(it, 0)).toString() }
+                } catch (_: Exception) { null }
+                appLabel?.ifBlank { null } ?: pkg?.substringAfterLast('.') ?: "Reproductor"
+            }
         }
 
+        // If albumArt is null, check for art URI (common in Spotify and YouTube Music)
+        if (albumArt == null) {
+            val artUri = metadata.getString(MediaMetadata.METADATA_KEY_ALBUM_ART_URI)
+                ?: metadata.getString(MediaMetadata.METADATA_KEY_ART_URI)
+            if (!artUri.isNullOrBlank()) {
+                CoroutineScope(Dispatchers.IO).launch {
+                    try {
+                        val bitmap = if (artUri.startsWith("http://") || artUri.startsWith("https://")) {
+                            val req = Request.Builder().url(artUri).build()
+                            LyricsRepository.okHttpClient.newCall(req).execute().use { resp ->
+                                if (resp.isSuccessful) {
+                                    resp.body()?.byteStream()?.use { stream ->
+                                        BitmapFactory.decodeStream(stream)
+                                    }
+                                } else null
+                            }
+                        } else {
+                            val uri = Uri.parse(artUri)
+                            contentResolver.openInputStream(uri)?.use { stream ->
+                                BitmapFactory.decodeStream(stream)
+                            }
+                        }
+                        if (bitmap != null) {
+                            withContext(Dispatchers.Main) {
+                                if (_mediaState.value.title == title) {
+                                    _mediaState.value = _mediaState.value.copy(albumArt = bitmap)
+                                }
+                            }
+                        }
+                    } catch (e: Exception) {
+                        Log.w(TAG, "Could not load album art from URI: $artUri", e)
+                    }
+                }
+            }
+        }
+
+        // Check if track has changed to reset lyrics cleanly
         val current = _mediaState.value
+        val isNewTrack = current.title != title || current.artist != artist
+        if (isNewTrack) {
+            parsedLyrics = emptyList()
+        }
+
         _mediaState.value = current.copy(
             title = title.ifEmpty { current.title },
             artist = artist.ifEmpty { current.artist },
@@ -815,13 +962,16 @@ class PowerampNotificationListener : NotificationListenerService() {
             albumArt = albumArt ?: current.albumArt,
             durationMs = if (duration > 0) duration else current.durationMs,
             playerName = friendlyPlayerName,
-            rawLyricsText = embeddedLyrics
+            rawLyricsText = embeddedLyrics,
+            fullLyrics = if (isNewTrack) emptyList() else current.fullLyrics,
+            hasLyrics = if (isNewTrack) false else current.hasLyrics,
+            lyricsLine = if (isNewTrack) "" else current.lyricsLine
         )
 
-        // If embedded lyrics exist, parse or set them
+        // If embedded lyrics exist, parse them
         if (embeddedLyrics.isNotBlank() && (embeddedLyrics.contains("[0") || embeddedLyrics.contains("[1"))) {
             parseLrcStream(embeddedLyrics.byteInputStream())
-        } else {
+        } else if (title.isNotBlank()) {
             autoDetectLyrics(artist, title)
         }
 
@@ -840,12 +990,34 @@ class PowerampNotificationListener : NotificationListenerService() {
         state ?: return
         val isPlaying = state.state == PlaybackState.STATE_PLAYING
         val positionMs = state.position
+        val updateTime = state.lastPositionUpdateTime
+        val speed = state.playbackSpeed.coerceAtLeast(0.1f)
+
+        // Calculate accurate real-time position with elapsedRealtime
+        val calculatedPos = if (isPlaying && updateTime > 0L) {
+            val delta = SystemClock.elapsedRealtime() - updateTime
+            (positionMs + (delta * speed).toLong()).coerceAtLeast(0L)
+        } else {
+            positionMs.coerceAtLeast(0L)
+        }
+
+        val pkg = activeController?.packageName
+        val isExternalApp = pkg != null && !pkg.contains("bluetooth", ignoreCase = true) && pkg != "com.syu.music" && pkg != packageName
+
+        if (isPlaying && isExternalApp) {
+            // Online streaming player (Spotify, YouTube Music, etc.) started playing!
+            if (XavierLocalPlayer.isPlaying) {
+                Log.i(TAG, "External streaming player ($pkg) is playing -> auto-pausing local player")
+                XavierLocalPlayer.pause()
+            }
+            _currentSource.value = AudioSource.ONLINE
+        }
 
         val current = _mediaState.value
         _mediaState.value = current.copy(
             isPlaying = isPlaying,
-            progressMs = if (positionMs >= 0) positionMs else current.progressMs,
-            lyricsLine = getCurrentLyricLine(parsedLyrics, positionMs)
+            progressMs = if (calculatedPos >= 0) calculatedPos else current.progressMs,
+            lyricsLine = getCurrentLyricLine(parsedLyrics, calculatedPos)
         )
 
         if (activeController?.packageName?.contains("bluetooth", ignoreCase = true) == true) {
@@ -855,7 +1027,7 @@ class PowerampNotificationListener : NotificationListenerService() {
                 album = _mediaState.value.album,
                 isPlaying = isPlaying,
                 durationMs = _mediaState.value.durationMs,
-                positionMs = positionMs
+                positionMs = calculatedPos
             )
             if (isPlaying) {
                 if (FytMusicService.isOemPlaying || _currentSource.value == AudioSource.LOCAL) {
@@ -867,23 +1039,38 @@ class PowerampNotificationListener : NotificationListenerService() {
         }
     }
 
-    // ── Continuous Progress Ticker (1-second precision) ──────────────────────
+    // ── Continuous Progress Ticker (250ms high-frequency precision for real-time lyrics) ──
 
     private fun startProgressTicker() {
         progressTickerJob?.cancel()
-        // Simple ticker without excessive thread creation
         mainHandler.post(object : Runnable {
             override fun run() {
                 val current = _mediaState.value
-                if (current.isPlaying && current.durationMs > 0) {
-                    val nextPos = (current.progressMs + 1000L).coerceAtMost(current.durationMs)
+                val source = _currentSource.value
+
+                if (current.isPlaying && source == AudioSource.ONLINE && activeController != null) {
+                    val state = activeController?.playbackState
+                    if (state != null && state.state == PlaybackState.STATE_PLAYING) {
+                        val timeDelta = SystemClock.elapsedRealtime() - state.lastPositionUpdateTime
+                        val currentPos = (state.position + (timeDelta * state.playbackSpeed).toLong())
+                            .coerceIn(0L, if (current.durationMs > 0) current.durationMs else Long.MAX_VALUE)
+
+                        val lyricLine = getCurrentLyricLine(parsedLyrics, currentPos)
+                        _mediaState.value = current.copy(
+                            progressMs = currentPos,
+                            lyricsLine = if (lyricLine.isNotEmpty()) lyricLine else current.lyricsLine
+                        )
+                    }
+                } else if (current.isPlaying && source == AudioSource.BLUETOOTH) {
+                    val nextPos = (current.progressMs + 250L).coerceAtMost(if (current.durationMs > 0) current.durationMs else Long.MAX_VALUE)
                     val lyricLine = getCurrentLyricLine(parsedLyrics, nextPos)
                     _mediaState.value = current.copy(
                         progressMs = nextPos,
                         lyricsLine = if (lyricLine.isNotEmpty()) lyricLine else current.lyricsLine
                     )
                 }
-                mainHandler.postDelayed(this, 1000L)
+
+                mainHandler.postDelayed(this, 250L)
             }
         })
     }

@@ -101,18 +101,27 @@ El módulo de clima de XavierCarOS viene **100% preconfigurado de fábrica**:
 
 ---
 
-## 🎵 Reproductor Multimedia Nativo (`XavierLocalPlayer`)
+## 🎵 Reproductor Universal Híbrido: Local (USB/FLAC) + Streaming Online (Spotify, YouTube Music, etc.)
 
-XavierCarOS **incluye su propio reproductor de música integrado de alto rendimiento**, desarrollado en Kotlin con MediaPlayer de Android:
+XavierCarOS integra un motor multimedia universal de grado automotriz que unifica la música local y las principales aplicaciones de streaming online:
 
-- ✅ **Sin dependencias externas**: No necesitas instalar Poweramp, Spotify ni ninguna otra app para escuchar música.
-- ✅ **Escaneo automático de USB**: Detecta pendrives y memorias USB conectadas al vehículo de forma automática.
-- ✅ **Soporte Hi-Res Audio**: Reproduce archivos FLAC (24-bit / 16-bit), MP3 y WAV con decodificación directa.
-- ✅ **Arranque automático (Ignition Auto-Play)**: Comienza a reproducir tu música automáticamente al dar contacto al auto (ACC ON).
-- ✅ **Letras sincronizadas en vivo (`.lrc`)**: Muestra las letras en formato karaoke con iluminación activa verso a verso.
-- ✅ **Traducción de letras en vivo**: Traduce las canciones en tiempo real del inglés al español con un solo toque.
-- ✅ **Explorador por categorías**: Navegación por Lista completa, Artistas, Carpetas y Favoritos.
-- 💡 *Soporte opcional para reproductores externos*: Si algún usuario avanzado prefiere usar reproductores de terceros como Poweramp, el launcher también puede capturar sus metadatos vía Notification Listener.
+### 🌐 1. Compatibilidad 100% con Reproductores Online
+- ✅ **Soporte Universal**: Compatible con **Spotify**, **YouTube Music**, **Apple Music**, **Deezer**, **Tidal**, **Amazon Music**, **SoundCloud**, **VLC**, **Poweramp** y audio por Bluetooth.
+- ✅ **Conmutación Inteligente**: Si estás escuchando música de un USB y abres Spotify o YouTube Music en la pantalla o en tu celular, XavierCarOS detecta la sesión activa, **pausa automáticamente la música local** para que no se superpongan los audios y muestra el badge del reproductor en uso (ej: 🟢 *Spotify*, 🔴 *YouTube Music*).
+- ✅ **Control Total Bidireccional**: Play, Pausa, Siguiente, Anterior y Seeker interactivo que controlan directamente la app de streaming activa.
+- ✅ **Controles al Volante (Timón) y Voz**: Los botones físicos de tu timón y los comandos de voz de la asistente local controlan fluidamente Spotify y YouTube Music.
+
+### 🎤 2. Letras Sincronizadas en Vivo (Karaoke) con Descarga Automática
+- ✅ **Búsqueda y Descarga Automática de Letras**: Si estás escuchando una canción en Spotify, YouTube Music o USB y no tienes el archivo `.lrc`, el sistema consulta en segundo plano la base de datos libre y abierta **LRCLIB**, descarga las letras con marcas de tiempo milimétricas `[mm:ss.xx]` y las almacena automáticamente en la memoria del vehículo (`/sdcard/Music/Lyrics/`).
+- ✅ **Iluminación Dinámica a 250ms**: Desplazamiento y resaltado en tiempo real al ritmo de la voz del cantante con refresco 4 veces por segundo (0ms de retraso).
+- ✅ **Salto Táctil por Versos (Tap-to-Seek)**: Toca cualquier estrofa o línea de la letra en pantalla para adelantar o retroceder la canción en Spotify / YouTube Music exactamente a ese segundo.
+- ✅ **Traducción Bilingüe Instantánea**: Botón de traducción para visualizar en vivo las letras en español de cualquier canción en inglés.
+
+### 📁 3. Reproductor Local Nativo de Alto Rendimiento (`XavierLocalPlayer`)
+- ✅ **Sin dependencias externas**: No necesitas ninguna app de terceros para reproducir tus pendrives USB.
+- ✅ **Audio Hi-Res sin pérdidas**: Reproducción nativa bit-perfect de FLAC (24-bit / 16-bit), WAV y MP3 a 320 kbps.
+- ✅ **Arranque automático al encender el auto (Ignition Auto-Play)**: Tu música reanuda sola en 1.5s al girar la llave (ACC ON).
+- ✅ **Explorador por 4 Vistas**: Lista completa, Artistas, Carpetas y Favoritos.
 
 ---
 

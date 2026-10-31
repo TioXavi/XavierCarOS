@@ -84,14 +84,46 @@ fun MusicPlayerCard(
                 .fillMaxSize()
                 .padding(16.dp)
         ) {
-            // Header Icons: Lyrics Toggle + Bluetooth source
+            // Header: Player Badge (Left) + Actions (Right)
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .align(Alignment.TopEnd),
-                horizontalArrangement = Arrangement.End,
+                    .align(Alignment.TopCenter),
+                horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
+                // Left: Active Player Badge (Spotify, YouTube Music, Bluetooth, Local, etc.)
+                val (badgeColor, badgeText) = when {
+                    mediaState.playerName.contains("spotify", ignoreCase = true) -> Pair(Color(0xFF1DB954), "Spotify")
+                    mediaState.playerName.contains("youtube", ignoreCase = true) -> Pair(Color(0xFFFF3B30), "YouTube Music")
+                    mediaState.playerName.contains("apple", ignoreCase = true) -> Pair(Color(0xFFFA2D48), "Apple Music")
+                    mediaState.playerName.contains("bluetooth", ignoreCase = true) || currentSource == AudioSource.BLUETOOTH -> Pair(Color(0xFF38BDF8), "Bluetooth Audio")
+                    currentSource == AudioSource.ONLINE -> Pair(Color(0xFF10B981), mediaState.playerName.ifBlank { "Online" })
+                    else -> Pair(Color(0xFFA855F7), mediaState.playerName.ifBlank { "Música Local" })
+                }
+
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(5.dp),
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(badgeColor.copy(alpha = 0.15f))
+                        .padding(horizontal = 7.dp, vertical = 3.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(6.dp)
+                            .background(badgeColor, CircleShape)
+                    )
+                    Text(
+                        text = badgeText,
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = badgeColor
+                    )
+                }
+
+                // Right: Actions (Lyrics Toggle + Source Toggle + Fullscreen)
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(4.dp)
@@ -109,15 +141,20 @@ fun MusicPlayerCard(
                         )
                     }
 
-                    // Audio source toggle button (Local USB vs Bluetooth)
+                    // Audio source toggle button (Local USB vs Online vs Bluetooth)
                     IconButton(
                         onClick = { PowerampNotificationListener.toggleSource() },
                         modifier = Modifier.size(28.dp)
                     ) {
+                        val (srcIcon, srcTint) = when (currentSource) {
+                            AudioSource.BLUETOOTH -> Pair(Icons.Default.Bluetooth, Color(0xFF38BDF8))
+                            AudioSource.ONLINE -> Pair(Icons.Default.Cloud, Color(0xFF10B981))
+                            else -> Pair(Icons.Default.Album, Color.White.copy(alpha = 0.6f))
+                        }
                         Icon(
-                            imageVector = Icons.Default.Bluetooth,
+                            imageVector = srcIcon,
                             contentDescription = "Fuente de audio",
-                            tint = if (currentSource == AudioSource.BLUETOOTH) Color(0xFF38BDF8) else Color.White.copy(alpha = 0.5f),
+                            tint = srcTint,
                             modifier = Modifier.size(18.dp)
                         )
                     }
