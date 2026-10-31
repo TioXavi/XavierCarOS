@@ -119,17 +119,12 @@ object LyricsRepository {
                 // 1. Next track in folder (curIdx + 1)
                 // 2. Following track (curIdx + 2)
                 // 3. Previous track (curIdx - 1)
-                // 4. All other tracks in folder (covers random/shuffle playback!)
+                // Preload up to 3 upcoming tracks online to save API quota and bandwidth
                 val queue = mutableListOf<File>()
                 if (curIdx >= 0) {
                     queue.add(files[(curIdx + 1) % size])
                     if (size > 2) queue.add(files[(curIdx + 2) % size])
                     if (size > 1) queue.add(files[(curIdx - 1 + size) % size])
-                }
-                for (f in files) {
-                    if (!queue.contains(f) && f.absolutePath != currentFile.absolutePath) {
-                        queue.add(f)
-                    }
                 }
 
                 for (targetFile in queue) {
@@ -161,7 +156,7 @@ object LyricsRepository {
                         continue
                     }
 
-                    // Download online in background
+                    // Download online in background with 3.5s throttle
                     try {
                         val downloaded = fetchOnlineLyrics(cleanT, cleanA)
                         if (downloaded.isNotEmpty()) {
@@ -174,8 +169,7 @@ object LyricsRepository {
                     }
 
                     preloadedFiles.add(path)
-                    // Polite 2.5s throttle to guarantee remaining safely below API rate limits (<24 req/min)
-                    delay(2500)
+                    delay(3500)
                 }
             } catch (e: Exception) {
                 Log.w(TAG, "Preload folder error", e)
@@ -290,7 +284,18 @@ object LyricsRepository {
     }
 
     private fun fetchOnlineLyrics(title: String, artist: String): List<LyricEntry> {
-        // Provider 1: Megalobiz API (Fast, reliable, free public synced LRC API)
+        // Provider 1: NetEase Cloud Music (Massive catalog, fast, unrestricted, full LRC)
+        try {
+            val netease = fetchNetEaseLyrics(title, artist)
+            if (netease.isNotEmpty()) {
+                Log.i(TAG, "Loaded ${netease.size} synced lyrics from NetEase for '$title' by '$artist'")
+                return netease
+            }
+        } catch (e: Exception) {
+            Log.d(TAG, "NetEase provider error: ${e.message}")
+        }
+
+        // Provider 2: Megalobiz API (Fast, reliable public synced LRC API)
         try {
             val mega = fetchMegalobizLyrics(title, artist)
             if (mega.isNotEmpty()) {
@@ -301,7 +306,7 @@ object LyricsRepository {
             Log.d(TAG, "Megalobiz provider error: ${e.message}")
         }
 
-        // Provider 2: LRCLIB API (Community database)
+        // Provider 3: LRCLIB API (Community database)
         try {
             val lrclib = fetchLrclibLyrics(title, artist)
             if (lrclib.isNotEmpty()) {
@@ -312,6 +317,142 @@ object LyricsRepository {
             Log.d(TAG, "LRCLIB provider error: ${e.message}")
         }
 
+        // Provider 4: lyrics.ovh (Plain text fallback converted to readable lyrics)
+        try {
+            val ovh = fetchLyricsOvh(title, artist)
+            if (ovh.isNotEmpty()) {
+                Log.i(TAG, "Loaded ${ovh.size} unsynced lyrics lines from lyrics.ovh for '$title' by '$artist'")
+                return ovh
+            }
+        } catch (e: Exception) {
+            Log.d(TAG, "lyrics.ovh provider error: ${e.message}")
+        }
+
+        return emptyList()
+    }
+
+    private fun fetchNetEaseLyrics(title: String, artist: String): List<LyricEntry> {
+        val userAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36"
+        val queries = mutableListOf<String>()
+        if (artist.isNotBlank()) {
+            queries.add("$title $artist")
+        }
+        queries.add(title)
+
+        for (q in queries) {
+            try {
+                val formBody = okhttp3.FormBody.Builder()
+                    .add("s", q)
+                    .add("type", "1")
+                    .add("offset", "0")
+                    .add("total", "true")
+                    .add("limit", "10")
+                    .build()
+
+                val searchReq = Request.Builder()
+                    .url("https://music.163.com/api/search/get/")
+                    .header("User-Agent", userAgent)
+                    .header("Referer", "https://music.163.com/")
+                    .post(formBody)
+                    .build()
+
+                client.newCall(searchReq).execute().use { response ->
+                    if (response.isSuccessful) {
+                        val body = response.body()?.string()
+                        if (!body.isNullOrBlank()) {
+                            val json = JSONObject(body)
+                            val result = json.optJSONObject("result")
+                            val songs = result?.optJSONArray("songs")
+                            if (songs != null && songs.length() > 0) {
+                                for (i in 0 until minOf(songs.length(), 10)) {
+                                    val s = songs.getJSONObject(i)
+                                    val songId = s.optLong("id")
+                                    val sName = s.optString("name", "").trim()
+                                    val artistsArr = s.optJSONArray("artists")
+                                    val sArtist = if (artistsArr != null && artistsArr.length() > 0) {
+                                        artistsArr.getJSONObject(0).optString("name", "").trim()
+                                    } else ""
+
+                                    if (songId > 0 && isTrackMatch(title, artist, sName, sArtist)) {
+                                        val lyricReq = Request.Builder()
+                                            .url("https://music.163.com/api/song/lyric?id=$songId&lv=1&kv=1&tv=-1")
+                                            .header("User-Agent", userAgent)
+                                            .header("Referer", "https://music.163.com/")
+                                            .build()
+
+                                        client.newCall(lyricReq).execute().use { lResp ->
+                                            if (lResp.isSuccessful) {
+                                                val lBody = lResp.body()?.string()
+                                                if (!lBody.isNullOrBlank()) {
+                                                    val lJson = JSONObject(lBody)
+                                                    val lrcObj = lJson.optJSONObject("lrc")
+                                                    val lrcText = lrcObj?.optString("lyric", "") ?: ""
+                                                    if (lrcText.length > 20) {
+                                                        val parsed = parseLrc(lrcText)
+                                                        if (parsed.isNotEmpty()) {
+                                                            return parsed
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                Log.d(TAG, "NetEase query '$q' failed: ${e.message}")
+            }
+        }
+        return emptyList()
+    }
+
+    private fun fetchLyricsOvh(title: String, artist: String): List<LyricEntry> {
+        val cleanT = cleanTrackString(title)
+        val artistCandidates = mutableListOf<String>()
+        if (artist.isNotBlank()) {
+            artistCandidates.add(artist)
+            val parts = artist.split(Regex("""[,&/]|\bfeat\.?\b|\bft\.?\b""", RegexOption.IGNORE_CASE))
+            for (p in parts) {
+                val cp = p.trim()
+                if (cp.isNotBlank() && !artistCandidates.contains(cp)) {
+                    artistCandidates.add(cp)
+                }
+            }
+        }
+
+        for (a in artistCandidates) {
+            if (a.isBlank()) continue
+            try {
+                val encArtist = URLEncoder.encode(a, "UTF-8")
+                val encTitle = URLEncoder.encode(cleanT, "UTF-8")
+                val url = "https://api.lyrics.ovh/v1/$encArtist/$encTitle"
+                val req = Request.Builder()
+                    .url(url)
+                    .header("User-Agent", "XavierCarOS/1.2")
+                    .build()
+
+                client.newCall(req).execute().use { resp ->
+                    if (resp.isSuccessful) {
+                        val body = resp.body()?.string()
+                        if (!body.isNullOrBlank()) {
+                            val json = JSONObject(body)
+                            val lyricsStr = json.optString("lyrics", "").trim()
+                            if (lyricsStr.isNotBlank() && !lyricsStr.contains("No lyrics found", ignoreCase = true)) {
+                                val lines = lyricsStr.lines().map { it.trim() }.filter { it.isNotBlank() }
+                                if (lines.isNotEmpty()) {
+                                    return lines.mapIndexed { idx, lineText ->
+                                        LyricEntry(timeMs = idx * 4000L, text = lineText)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            } catch (_: Exception) {}
+        }
         return emptyList()
     }
 
@@ -571,12 +712,19 @@ object LyricsRepository {
                 }
                 val totalMs = minutes * 60_000L + seconds * 1000L + millis
                 val text = line.substring(match.range.last + 1).trim()
-                if (text.isNotBlank()) {
+                if (text.isNotBlank() && !isMetadataText(text)) {
                     list.add(LyricEntry(totalMs, text))
                 }
             }
         }
         return list.sortedBy { it.timeMs }
+    }
+
+    private fun isMetadataText(text: String): Boolean {
+        val t = text.lowercase()
+        return t.startsWith("作词") || t.startsWith("作曲") || t.startsWith("编曲") ||
+                t.startsWith("制作") || t.startsWith("by:") || t.startsWith("ti:") ||
+                t.startsWith("ar:") || t.startsWith("al:") || t.startsWith("qq:")
     }
 
     fun cleanTrackString(raw: String): String {

@@ -13,7 +13,6 @@ import android.os.IBinder
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import com.xavier.carlauncher.R
-import com.xavier.carlauncher.system.RootHelper
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -192,11 +191,6 @@ class AccOffService : Service() {
 
         // 4. Pause native audio playback
         com.xavier.carlauncher.media.XavierLocalPlayer.pause()
-
-        // 5. Root deep sleep power optimization: drop CPU governor to powersave and disable wake locks
-        CoroutineScope(Dispatchers.IO).launch {
-            RootHelper.standbyPowerDown()
-        }
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -216,11 +210,6 @@ class AccOffService : Service() {
         sendLocalBroadcast(ACTION_RESUME_GPS)
         sendLocalBroadcast(ACTION_RESTORE_REFRESH)
         sendLocalBroadcast(ACTION_ACC_ON)
-
-        // 3. Root performance optimization: restore performance CPU governor for 60 FPS
-        CoroutineScope(Dispatchers.IO).launch {
-            RootHelper.restorePowerUp()
-        }
 
         // Voice greeting upon vehicle ignition or wake (strictly once per ignition cycle)
         com.xavier.carlauncher.voice.CarVoiceAssistant.getInstance(applicationContext).onVehicleStartupOrWake()

@@ -5,7 +5,6 @@ import android.content.Context
 import android.content.Intent
 import android.util.Log
 import com.xavier.carlauncher.MainActivity
-import com.xavier.carlauncher.system.RootHelper
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -17,6 +16,9 @@ import kotlinx.coroutines.launch
  * even if the OEM music player (com.syu.music.MAct) opens to start playback,
  * XavierCarOS immediately reclaims the foreground so the dashboard is visible
  * while music plays continuously in the background.
+ *
+ * Designed to run 100% natively on any Android device (rooted or unrooted)
+ * without executing root commands or triggering root toast notifications.
  */
 object StartupGuardian {
     private const val TAG = "StartupGuardian"
@@ -63,29 +65,29 @@ object StartupGuardian {
                     break
                 }
 
-                delay(250L)
+                delay(500L)
 
                 val shouldReclaim = checkShouldReclaim(context)
                 if (shouldReclaim && !userRequestedPlayer) {
                     Log.i(TAG, "OEM music player or settings detected in foreground during startup. Reclaiming foreground for XavierCarOS!")
-                    // Allow 300ms for OEM player audio pipeline initialization if it just launched
                     delay(300L)
                     bringLauncherToFront(context)
                     try {
                         context.sendBroadcast(Intent("com.syu.music.stop"))
                     } catch (_: Exception) {}
                     reclaimedCount++
-                    delay(700L) // Settle delay
+                    delay(1000L) // Settle delay
                 }
             }
             Log.i(TAG, "StartupGuardian window finished (reclaimed foreground $reclaimedCount times)")
         }
     }
 
-    private suspend fun checkShouldReclaim(context: Context): Boolean {
-        // Fast path 1: Check running tasks via ActivityManager
+    private fun checkShouldReclaim(context: Context): Boolean {
+        // Pure native Android check via ActivityManager
         try {
             val am = context.getSystemService(Context.ACTIVITY_SERVICE) as? ActivityManager
+            @Suppress("DEPRECATION")
             val tasks = am?.getRunningTasks(1)
             if (!tasks.isNullOrEmpty()) {
                 val topPkg = tasks[0].topActivity?.packageName ?: ""
@@ -95,17 +97,6 @@ object StartupGuardian {
                 }
             }
         } catch (_: Exception) {}
-
-        // Fast path 2: Check mCurrentFocus via dumpsys if MainActivity is not resumed
-        if (!MainActivity.isActivityResumed) {
-            val result = RootHelper.execRoot("dumpsys window windows | grep mCurrentFocus", timeoutMs = 600L)
-            if (result.success) {
-                val out = result.output
-                if (out.contains("com.syu.music") || out.contains("DateTimeSettingsActivity")) {
-                    return true
-                }
-            }
-        }
 
         return false
     }
@@ -124,12 +115,6 @@ object StartupGuardian {
         } catch (e: Exception) {
             Log.w(TAG, "Failed to start MainActivity intent", e)
         }
-
-        // Guaranteed foreground elevation via root
-        RootHelper.execRootInternal(
-            "am start -c android.intent.category.HOME -a android.intent.action.MAIN",
-            timeoutMs = 1200L
-        )
     }
 }
 

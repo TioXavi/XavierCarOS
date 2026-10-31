@@ -10,7 +10,6 @@ import android.location.LocationManager
 import android.os.Build
 import android.os.Bundle
 import android.util.Log
-import com.xavier.carlauncher.system.RootHelper
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -362,7 +361,7 @@ object VehicleLocationManager {
     }
 
     /**
-     * Periodically verifies GPS health and kicks the hardware antenna power if stalled.
+     * Periodically verifies GPS health natively via standard LocationManager.
      */
     private fun startWatchdog() {
         watchdogJob?.cancel()
@@ -373,10 +372,7 @@ object VehicleLocationManager {
                 val isStale = (now - lastUpdateTimeMs) > 45_000L
 
                 if (isStale && isListening) {
-                    Log.w(TAG, "GPS updates appear stale (>45s). Kicking hardware antenna power...")
                     try {
-                        RootHelper.execRoot("echo 1 > /sys/fytver/gps_pwren 2>/dev/null", timeoutMs = 1000L)
-                        // Trigger one-off getLastKnownLocation check
                         val lm = locationManager
                         val lastGps = lm?.getLastKnownLocation(LocationManager.GPS_PROVIDER)
                         if (lastGps != null && (now - lastGps.time) < 30_000L) {
@@ -391,18 +387,9 @@ object VehicleLocationManager {
     }
 
     /**
-     * Root optimizations to maximize GPS accuracy, enable AGPS, and prevent power manager throttle.
+     * System location configuration helper (safe on all devices).
      */
     suspend fun optimizeGpsSystem() {
-        try {
-            RootHelper.execRoot("settings put secure location_mode 3", timeoutMs = 1500L)
-            RootHelper.execRoot("settings put secure location_providers_allowed gps,network", timeoutMs = 1500L)
-            RootHelper.execRoot("settings put global assisted_gps_enabled 1", timeoutMs = 1500L)
-            RootHelper.execRoot("settings put secure assisted_gps_enabled 1", timeoutMs = 1500L)
-            RootHelper.execRoot("echo 1 > /sys/fytver/gps_pwren", timeoutMs = 1500L)
-            Log.i(TAG, "High-accuracy GNSS & AGPS configurations successfully applied")
-        } catch (e: Exception) {
-            Log.w(TAG, "Could not apply GNSS root optimizations", e)
-        }
+        // Native Android LocationManager handles GNSS providers safely without requiring root shell calls
     }
 }

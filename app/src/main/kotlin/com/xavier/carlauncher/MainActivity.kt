@@ -81,13 +81,14 @@ class MainActivity : ComponentActivity() {
         // Automatically start native music playback on vehicle startup / ignition
         com.xavier.carlauncher.media.XavierLocalPlayer.onVehicleIgnition()
 
-        // Privileged root optimizations (if device is rooted)
-        lifecycleScope.launch {
-            if (RootHelper.isRootAvailable()) {
-                RootHelper.grantSelfPermissions(applicationContext)
-                RootHelper.lockAsDefaultHomeLauncher(applicationContext)
-                RootHelper.optimizeCpuPerformance()
-                RootHelper.enableAdbOverWifi(5555)
+        // One-time setup on initial install (persisted so it never executes or spams root toasts again)
+        val initPrefs = applicationContext.getSharedPreferences("xavier_init_prefs", Context.MODE_PRIVATE)
+        if (!initPrefs.getBoolean("initial_setup_completed", false)) {
+            initPrefs.edit().putBoolean("initial_setup_completed", true).apply()
+            lifecycleScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+                if (RootHelper.isRootAvailable()) {
+                    RootHelper.performOneTimeSetup(applicationContext)
+                }
             }
         }
 

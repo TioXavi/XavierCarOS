@@ -778,6 +778,12 @@ class PowerampNotificationListener : NotificationListenerService() {
             ?: externalControllers.firstOrNull()
 
         if (preferred != null) {
+            val isPreferredPlaying = preferred.playbackState?.state == PlaybackState.STATE_PLAYING
+            if (isPreferredPlaying && XavierLocalPlayer.isPlaying) {
+                Log.i(TAG, "External streaming player (${preferred.packageName}) is playing -> auto-pausing local player")
+                XavierLocalPlayer.pause()
+            }
+
             if (activeController?.sessionToken != preferred.sessionToken) {
                 activeController?.unregisterCallback(controllerCallback)
                 activeController = preferred
@@ -1011,7 +1017,7 @@ class PowerampNotificationListener : NotificationListenerService() {
         }
 
         val pkg = activeController?.packageName
-        val isExternalApp = pkg != null && !pkg.contains("bluetooth", ignoreCase = true) && pkg != "com.syu.music" && pkg != packageName
+        val isExternalApp = pkg != null && !pkg.contains("bluetooth", ignoreCase = true) && pkg != "com.syu.music" && !pkg.startsWith("com.xavier.carlauncher")
 
         if (isPlaying && isExternalApp) {
             // Online streaming player (Spotify, YouTube Music, etc.) started playing!

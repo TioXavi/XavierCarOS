@@ -133,22 +133,22 @@ object XavierLocalPlayer {
     private val audioFocusChangeListener = AudioManager.OnAudioFocusChangeListener { focusChange ->
         when (focusChange) {
             AudioManager.AUDIOFOCUS_LOSS -> {
-                Log.d(TAG, "Audio focus lost: $focusChange")
-                val isBtActive = PowerampNotificationListener.mediaState.value.playerName == "Bluetooth Audio"
-                if (isBtActive) {
-                    pause()
-                }
+                Log.i(TAG, "Audio focus permanently lost ($focusChange) -> external app (SmartTube, YouTube, etc.) requested playback. Pausing local player.")
+                hasAudioFocus = false
+                pause()
             }
             AudioManager.AUDIOFOCUS_LOSS_TRANSIENT -> {
-                Log.d(TAG, "Audio focus lost transiently")
+                Log.i(TAG, "Audio focus lost transiently ($focusChange). Pausing local player.")
+                hasAudioFocus = false
                 pause()
             }
             AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK -> {
-                Log.d(TAG, "Audio focus ducking")
-                mediaPlayer?.setVolume(0.2f, 0.2f)
+                Log.d(TAG, "Audio focus ducking ($focusChange)")
+                mediaPlayer?.setVolume(0.15f, 0.15f)
             }
             AudioManager.AUDIOFOCUS_GAIN -> {
-                Log.d(TAG, "Audio focus regained")
+                Log.i(TAG, "Audio focus regained ($focusChange)")
+                hasAudioFocus = true
                 mediaPlayer?.setVolume(1.0f, 1.0f)
             }
         }
@@ -744,6 +744,7 @@ object XavierLocalPlayer {
     fun play() {
         val ctx = appContext ?: return
         stopOemPlayer(ctx)
+        hasAudioFocus = false
         requestAudioFocus()
         val mp = mediaPlayer
         if (mp != null && isPrepared) {
@@ -767,12 +768,13 @@ object XavierLocalPlayer {
     }
 
     /**
-     * Pauses playback and saves the exact millisecond position.
+     * Pauses playback and releases audio focus so external players (SmartTube, YouTube, etc.) can play.
      */
     fun pause() {
         try {
             mediaPlayer?.pause()
             stopProgressLoop()
+            abandonAudioFocus()
             publishState(isPlaying = false)
             val pos = mediaPlayer?.currentPosition?.toLong() ?: 0L
             prefs?.edit()?.putLong(KEY_LAST_POS, pos)?.apply()
@@ -1066,6 +1068,25 @@ object XavierLocalPlayer {
             }
         } catch (e: Exception) {
             Log.w(TAG, "Error requesting audio focus", e)
+        }
+    }
+
+    /**
+     * Completely releases audio focus so external players (SmartTube, YouTube, Spotify, etc.) have full audio access.
+     */
+    fun abandonAudioFocus() {
+        val am = audioManager ?: return
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                focusRequest?.let { am.abandonAudioFocusRequest(it) }
+            } else {
+                @Suppress("DEPRECATION")
+                am.abandonAudioFocus(audioFocusChangeListener)
+            }
+            hasAudioFocus = false
+            Log.d(TAG, "Audio focus surrendered to external audio/video player")
+        } catch (e: Exception) {
+            Log.w(TAG, "Error abandoning audio focus", e)
         }
     }
 
