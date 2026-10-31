@@ -44,10 +44,64 @@ object LyricsTranslationManager {
         "siento", "quiero", "estoy", "está", "somos", "eres", "tengo", "tiene", "pa", "tú", "mí"
     )
 
+    // Pre-seeded offline automotive translation vocabulary (Spanish <-> English)
+    private val offlineVocabulary = mapOf(
+        // Spanish -> English
+        "te amo" to "I love you",
+        "mi amor" to "my love",
+        "mi corazón" to "my heart",
+        "te quiero" to "I care for you",
+        "no puedo olvidar" to "I cannot forget",
+        "sin tu amor" to "without your love",
+        "la noche" to "the night",
+        "junto a ti" to "next to you",
+        "donde estás" to "where are you",
+        "tú y yo" to "you and I",
+        "por siempre" to "forever",
+        "me haces falta" to "I miss you",
+        "me importas tú" to "you matter to me",
+        "ojos negros" to "dark eyes",
+        "piel canela" to "cinnamon skin",
+        "se supone" to "supposed to be",
+        "debería haberte olvidado" to "I should have forgotten you",
+        "si te pudiera olvidar" to "if I could forget you",
+        "tenlo por seguro" to "be rest assured",
+        "ya no habría nada tuyo" to "there'd be nothing left of you",
+        "tengo que colgar" to "I have to hang up",
+        "no me quieres" to "you don't love me",
+        "sabor a mí" to "taste of me",
+        "bésame mucho" to "kiss me a lot",
+        "historia de un amor" to "story of a love",
+        "a puro dolor" to "in pure pain",
+        "solamente una vez" to "only once",
+        "somos novios" to "we are sweethearts",
+        "contigo aprendí" to "with you I learned",
+        "reloj no marques las horas" to "clock don't tick the hours",
+        // English -> Spanish
+        "i love you" to "te amo",
+        "my love" to "mi amor",
+        "my heart" to "mi corazón",
+        "forever" to "por siempre",
+        "without you" to "sin ti",
+        "don't go" to "no te vayas",
+        "i miss you" to "te extraño",
+        "let me know" to "déjame saber",
+        "stay with me" to "quédate conmigo",
+        "hold my hand" to "toma mi mano",
+        "all night long" to "toda la noche",
+        "take me away" to "llévame lejos",
+        "i need you" to "te necesito"
+    )
+
     fun initialize(context: Context) {
         if (isInitialized) return
         isInitialized = true
         cacheFile = File(context.filesDir, CACHE_FILE)
+
+        // Seed with built-in offline vocabulary immediately (0ms)
+        offlineVocabulary.forEach { (k, v) ->
+            memoryCache.putIfAbsent(k.lowercase().trim(), v)
+        }
 
         scope.launch {
             try {
@@ -68,13 +122,13 @@ object LyricsTranslationManager {
     }
 
     /**
-     * Determines whether the given lyrics collection is already in Spanish.
+     * Determines whether the given lyrics collection is in Spanish.
      */
     fun isSongInSpanish(lyrics: List<LyricEntry>): Boolean {
         if (lyrics.isEmpty()) return false
 
         // Check for Spanish specific characters (á, é, í, ó, ú, ñ, ¿, ¡)
-        val textSample = lyrics.take(20).joinToString(" ") { it.text.lowercase() }
+        val textSample = lyrics.take(25).joinToString(" ") { it.text.lowercase() }
         val spanishChars = listOf('á', 'é', 'í', 'ó', 'ú', 'ñ', '¿', '¡')
         if (spanishChars.any { textSample.contains(it) }) {
             return true
@@ -86,7 +140,7 @@ object LyricsTranslationManager {
 
         val markerHits = words.count { it in spanishMarkers }
         val ratio = markerHits.toFloat() / words.size.toFloat()
-        return ratio > 0.18f // Over 18% Spanish function words indicates Spanish lyrics
+        return ratio > 0.16f
     }
 
     fun getTranslationSync(rawText: String): String? {
@@ -96,9 +150,10 @@ object LyricsTranslationManager {
     }
 
     /**
-     * Enriches a list of lyrics with Spanish translations.
-     * If the song is in Spanish, returns the list unchanged.
-     * If the song is in English, fetches batch translations and saves to offline cache.
+     * Enriches a list of lyrics with bidirectional translations:
+     * - Spanish songs -> Translated to English (ES -> EN).
+     * - English/foreign songs -> Translated to Spanish (EN -> ES).
+     * Works 100% offline using disk cache and embedded automotive vocabulary.
      */
     suspend fun enrichLyricsWithTranslation(
         context: Context,
@@ -107,13 +162,11 @@ object LyricsTranslationManager {
         initialize(context)
         if (lyrics.isEmpty()) return@withContext lyrics
 
-        // If lyrics are already Spanish, do not show duplicate Spanish translation
-        if (isSongInSpanish(lyrics)) {
-            Log.d(TAG, "Lyrics detected as Spanish. Skipping translation.")
-            return@withContext lyrics.map { it.copy(translation = null) }
-        }
+        val isSpanish = isSongInSpanish(lyrics)
+        val sourceLang = if (isSpanish) "es" else "auto"
+        val targetLang = if (isSpanish) "en" else "es"
 
-        // Fast pass: Check memory cache
+        // 1. Fast pass: Check memory & offline cache (0ms)
         val missingLines = mutableListOf<String>()
         val result = lyrics.map { entry ->
             val clean = entry.text.lowercase().trim()
@@ -128,7 +181,7 @@ object LyricsTranslationManager {
             return@withContext result
         }
 
-        // Batch translate missing lines in chunks of 35 lines in a single fast call
+        // 2. Online batch translation for missing lines
         try {
             val chunks = missingLines.chunked(35)
             var diskCacheModified = false
@@ -136,7 +189,7 @@ object LyricsTranslationManager {
             for (chunk in chunks) {
                 val combined = chunk.joinToString("\n")
                 val encoded = URLEncoder.encode(combined, "UTF-8")
-                val url = "https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=es&dt=t&q=$encoded"
+                val url = "https://translate.googleapis.com/translate_a/single?client=gtx&sl=$sourceLang&tl=$targetLang&dt=t&q=$encoded"
 
                 val request = Request.Builder()
                     .url(url)
@@ -148,14 +201,7 @@ object LyricsTranslationManager {
                     if (response.isSuccessful) {
                         val body = response.body()?.string() ?: return@use
                         val jsonArr = JSONArray(body)
-                        val detectedLang = if (jsonArr.length() > 2) jsonArr.optString(2, "") else ""
-
-                        if (detectedLang.equals("es", ignoreCase = true)) {
-                            // Online detector confirmed song is Spanish
-                            return@withContext lyrics.map { it.copy(translation = null) }
-                        }
-
-                        val sentences = jsonArr.getJSONArray(0)
+                        val sentences = jsonArr.optJSONArray(0) ?: return@use
                         val sb = StringBuilder()
                         for (i in 0 until sentences.length()) {
                             val part = sentences.getJSONArray(i).getString(0)

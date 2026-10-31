@@ -539,6 +539,16 @@ object XavierLocalPlayer {
         if (qIdx >= 0) currentQueueIndex = qIdx
 
         try {
+            // Strictly reset cached lyrics & album art immediately so old track data never leaks!
+            cachedLyrics = emptyList()
+            cachedAlbumArt = null
+
+            // 0ms Synchronous Fast-Check: RAM or Local Disk Cache
+            val immediateLyrics = LyricsRepository.loadFromMemoryOrDisk(ctx, track.title, track.artist, track.path)
+            if (immediateLyrics.isNotEmpty()) {
+                cachedLyrics = immediateLyrics
+            }
+
             mediaPlayer?.release()
             isPrepared = false
 
@@ -623,10 +633,19 @@ object XavierLocalPlayer {
 
                 val activeTrack = currentTrack ?: track
                 cachedAlbumArt = extractAlbumArt(activeTrack.path)
-                val rawLyrics = LyricsRepository.getOrFetchLyrics(ctx, activeTrack.title, activeTrack.artist, activeTrack.path)
-                cachedLyrics = LyricsTranslationManager.enrichLyricsWithTranslation(ctx, rawLyrics)
-                withContext(Dispatchers.Main) {
-                    publishState(isPlaying = startImmediately)
+                val rawLyrics = LyricsRepository.getOrFetchLyrics(ctx, activeTrack.title, activeTrack.artist, activeTrack.path, activeTrack.durationMs)
+                if (rawLyrics.isNotEmpty()) {
+                    cachedLyrics = rawLyrics
+                    withContext(Dispatchers.Main) {
+                        publishState(isPlaying = startImmediately)
+                    }
+                }
+                val enriched = LyricsTranslationManager.enrichLyricsWithTranslation(ctx, if (rawLyrics.isNotEmpty()) rawLyrics else cachedLyrics)
+                if (enriched.isNotEmpty()) {
+                    cachedLyrics = enriched
+                    withContext(Dispatchers.Main) {
+                        publishState(isPlaying = startImmediately)
+                    }
                 }
                 LyricsRepository.preloadFolder(ctx, activeTrack.path)
             }

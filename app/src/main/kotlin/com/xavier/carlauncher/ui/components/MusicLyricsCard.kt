@@ -4,6 +4,7 @@ import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -59,6 +60,7 @@ fun MusicLyricsCard(
     // Isolated per track - strictly reset to empty whenever currentTrackKey changes!
     var fetchedLyrics by remember(currentTrackKey) { mutableStateOf<List<LyricEntry>>(emptyList()) }
     var isDownloading by remember(currentTrackKey) { mutableStateOf(false) }
+    var showTranslation by remember { mutableStateOf(true) }
 
     // Combine locally passed lyrics or fetched online lyrics
     val lyrics = if (mediaState.fullLyrics.isNotEmpty()) mediaState.fullLyrics else fetchedLyrics
@@ -146,27 +148,61 @@ fun MusicLyricsCard(
                     )
                 }
 
-                // Status Pill
+                // Status Pill + Translation Toggle
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(4.dp),
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(colors.textPrimary.copy(alpha = 0.08f))
-                        .padding(horizontal = 7.dp, vertical = 3.dp)
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
-                    if (isDownloading) {
-                        CircularProgressIndicator(
-                            color = colors.secondary,
-                            strokeWidth = 2.dp,
-                            modifier = Modifier.size(10.dp)
+                    // Translation Toggle Pill (ES ⇄ EN)
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(if (showTranslation) Color(0xFF6366F1).copy(alpha = 0.35f) else colors.textPrimary.copy(alpha = 0.08f))
+                            .border(
+                                BorderStroke(
+                                    1.dp,
+                                    if (showTranslation) Color(0xFF818CF8) else Color(0xFF6366F1).copy(alpha = 0.25f)
+                                ),
+                                RoundedCornerShape(12.dp)
+                            )
+                            .clickable {
+                                showTranslation = !showTranslation
+                                if (showTranslation) {
+                                    com.xavier.carlauncher.media.XavierLocalPlayer.ensureLyricsTranslation()
+                                }
+                            }
+                            .padding(horizontal = 7.dp, vertical = 3.dp)
+                    ) {
+                        Text(
+                            text = "ES ⇄ EN",
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = if (showTranslation) Color(0xFF818CF8) else colors.textSecondary
                         )
-                        Text(text = "Descargando", fontSize = 10.sp, color = colors.secondary)
-                    } else if (lyrics.isNotEmpty()) {
-                        Box(modifier = Modifier.size(6.dp).background(Color(0xFF10B981), CircleShape))
-                        Text(text = "Sincronizada", fontSize = 10.sp, color = Color(0xFF10B981), fontWeight = FontWeight.Medium)
-                    } else {
-                        Text(text = "En espera", fontSize = 10.sp, color = colors.textSecondary)
+                    }
+
+                    // Status Pill
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(colors.textPrimary.copy(alpha = 0.08f))
+                            .padding(horizontal = 7.dp, vertical = 3.dp)
+                    ) {
+                        if (isDownloading) {
+                            CircularProgressIndicator(
+                                color = colors.secondary,
+                                strokeWidth = 2.dp,
+                                modifier = Modifier.size(10.dp)
+                            )
+                            Text(text = "Descargando", fontSize = 10.sp, color = colors.secondary)
+                        } else if (lyrics.isNotEmpty()) {
+                            Box(modifier = Modifier.size(6.dp).background(Color(0xFF10B981), CircleShape))
+                            Text(text = "Sincronizada", fontSize = 10.sp, color = Color(0xFF10B981), fontWeight = FontWeight.Medium)
+                        } else {
+                            Text(text = "En espera", fontSize = 10.sp, color = colors.textSecondary)
+                        }
                     }
                 }
             }
@@ -203,7 +239,7 @@ fun MusicLyricsCard(
                             Brush.horizontalGradient(listOf(Color.Transparent, Color.Transparent))
                         }
 
-                        Box(
+                        Column(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clip(RoundedCornerShape(8.dp))
@@ -219,6 +255,18 @@ fun MusicLyricsCard(
                                 maxLines = 2,
                                 overflow = TextOverflow.Ellipsis
                             )
+                            val trans = lyric.translation ?: com.xavier.carlauncher.media.LyricsTranslationManager.getTranslationSync(lyric.text)
+                            if (showTranslation && !trans.isNullOrBlank()) {
+                                Text(
+                                    text = trans,
+                                    fontSize = if (isActive) 11.sp else 9.sp,
+                                    fontWeight = if (isActive) FontWeight.SemiBold else FontWeight.Normal,
+                                    color = if (isActive) Color(0xFFFDE047) else colors.textSecondary.copy(alpha = 0.65f),
+                                    maxLines = 2,
+                                    overflow = TextOverflow.Ellipsis,
+                                    modifier = Modifier.padding(top = 1.dp)
+                                )
+                            }
                         }
                     }
                 }

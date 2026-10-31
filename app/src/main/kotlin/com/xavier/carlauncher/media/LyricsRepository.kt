@@ -45,16 +45,43 @@ object LyricsRepository {
     private var preloadJob: Job? = null
 
     /**
+     * Synchronous 0ms check: RAM cache or Local Disk Cache.
+     * Returns immediately without coroutine switching or network lag.
+     */
+    fun loadFromMemoryOrDisk(
+        context: Context,
+        rawTitle: String,
+        rawArtist: String,
+        playPath: String = ""
+    ): List<LyricEntry> {
+        val cleanTitle = cleanTrackString(rawTitle)
+        val cleanArtist = cleanArtistString(rawArtist)
+        if (cleanTitle.isBlank() || cleanTitle.equals("Pista de audio", ignoreCase = true)) {
+            return emptyList()
+        }
+        val cacheKey = "${cleanTitle}_$cleanArtist".lowercase()
+        memoryCache[cacheKey]?.let { return it }
+
+        val local = loadFromLocal(context, cleanTitle, cleanArtist, playPath)
+        if (local.isNotEmpty()) {
+            memoryCache[cacheKey] = local
+            return local
+        }
+        return emptyList()
+    }
+
+    /**
      * Resolves synchronized lyrics for track:
      * 1. Memory Cache (0ms)
      * 2. Local Storage Cache (.lrc file in app storage or alongside music file, ~1ms)
-     * 3. Online Fetch from LRCLIB API with strict matching
+     * 3. Online Fetch from NetEase, LRCLIB, Megalobiz with STRICT matching
      */
     suspend fun getOrFetchLyrics(
         context: Context,
         rawTitle: String,
         rawArtist: String,
-        playPath: String = ""
+        playPath: String = "",
+        targetDurationMs: Long = 0L
     ): List<LyricEntry> = withContext(Dispatchers.IO) {
         val cleanTitle = cleanTrackString(rawTitle)
         val cleanArtist = cleanArtistString(rawArtist)
@@ -79,7 +106,7 @@ object LyricsRepository {
         }
 
         try {
-            val onlineLyrics = fetchOnlineLyrics(cleanTitle, cleanArtist)
+            val onlineLyrics = fetchOnlineLyrics(cleanTitle, cleanArtist, targetDurationMs)
             if (onlineLyrics.isNotEmpty()) {
                 saveToLocalCache(context, cleanTitle, cleanArtist, onlineLyrics)
                 memoryCache[cacheKey] = onlineLyrics
@@ -218,7 +245,7 @@ object LyricsRepository {
                 if (lrcSidecar.exists() && lrcSidecar.length() > 0) {
                     try {
                         val parsed = parseLrc(lrcSidecar.readText())
-                        if (parsed.isNotEmpty()) return parsed
+                        if (parsed.isNotEmpty()) return enrichWithCompanionTrans(lrcSidecar, parsed)
                     } catch (_: Exception) {}
                 }
             }
@@ -230,14 +257,7 @@ object LyricsRepository {
         if (cacheFile.exists() && cacheFile.length() > 0) {
             try {
                 val parsed = parseLrc(cacheFile.readText())
-                if (parsed.isNotEmpty()) return parsed
-            } catch (_: Exception) {}
-        }
-        val cacheFileTitleOnly = File(cacheDir, "${cleanT}.lrc")
-        if (cacheFileTitleOnly.exists() && cacheFileTitleOnly.length() > 0) {
-            try {
-                val parsed = parseLrc(cacheFileTitleOnly.readText())
-                if (parsed.isNotEmpty()) return parsed
+                if (parsed.isNotEmpty()) return enrichWithCompanionTrans(cacheFile, parsed)
             } catch (_: Exception) {}
         }
 
@@ -255,26 +275,22 @@ object LyricsRepository {
                 if (directFile.exists() && directFile.length() > 0) {
                     try {
                         val parsed = parseLrc(directFile.readText())
-                        if (parsed.isNotEmpty()) return parsed
+                        if (parsed.isNotEmpty()) return enrichWithCompanionTrans(directFile, parsed)
                     } catch (_: Exception) {}
                 }
-                val directTitle = File(dir, "${cleanT}.lrc")
-                if (directTitle.exists() && directTitle.length() > 0) {
-                    try {
-                        val parsed = parseLrc(directTitle.readText())
-                        if (parsed.isNotEmpty()) return parsed
-                    } catch (_: Exception) {}
-                }
-                // Try fuzzy file match
+
+                // If artist is known, only match files that also contain the artist name
                 val matching = dir.listFiles { f ->
                     if (!f.name.endsWith(".lrc", ignoreCase = true)) return@listFiles false
                     val n = f.nameWithoutExtension.lowercase().replace(Regex("""[^a-z0-9]"""), "")
-                    n.contains(cleanT) && (cleanA.isBlank() || n.contains(cleanA))
+                    val tNorm = normalizeString(title)
+                    val aNorm = normalizeString(artist)
+                    n.contains(tNorm) && (aNorm.isBlank() || n.contains(aNorm))
                 }
                 if (!matching.isNullOrEmpty()) {
                     try {
                         val parsed = parseLrc(matching[0].readText())
-                        if (parsed.isNotEmpty()) return parsed
+                        if (parsed.isNotEmpty()) return enrichWithCompanionTrans(matching[0], parsed)
                     } catch (_: Exception) {}
                 }
             }
@@ -283,10 +299,30 @@ object LyricsRepository {
         return emptyList()
     }
 
-    private fun fetchOnlineLyrics(title: String, artist: String): List<LyricEntry> {
+    private fun enrichWithCompanionTrans(lrcFile: File, entries: List<LyricEntry>): List<LyricEntry> {
+        val transFile = File(lrcFile.parentFile, "${lrcFile.nameWithoutExtension}.trans.json")
+        if (transFile.exists() && transFile.length() > 0) {
+            try {
+                val json = JSONObject(transFile.readText())
+                return entries.map { entry ->
+                    val k1 = entry.timeMs.toString()
+                    val k2 = entry.text.lowercase().trim()
+                    val trans = when {
+                        json.has(k1) -> json.optString(k1)
+                        json.has(k2) -> json.optString(k2)
+                        else -> null
+                    }
+                    if (!trans.isNullOrBlank()) entry.copy(translation = trans) else entry
+                }
+            } catch (_: Exception) {}
+        }
+        return entries
+    }
+
+    private fun fetchOnlineLyrics(title: String, artist: String, targetDurationMs: Long = 0L): List<LyricEntry> {
         // Provider 1: NetEase Cloud Music (Massive catalog, fast, unrestricted, full LRC)
         try {
-            val netease = fetchNetEaseLyrics(title, artist)
+            val netease = fetchNetEaseLyrics(title, artist, targetDurationMs)
             if (netease.isNotEmpty()) {
                 Log.i(TAG, "Loaded ${netease.size} synced lyrics from NetEase for '$title' by '$artist'")
                 return netease
@@ -297,7 +333,7 @@ object LyricsRepository {
 
         // Provider 2: Megalobiz API (Fast, reliable public synced LRC API)
         try {
-            val mega = fetchMegalobizLyrics(title, artist)
+            val mega = fetchMegalobizLyrics(title, artist, targetDurationMs)
             if (mega.isNotEmpty()) {
                 Log.i(TAG, "Loaded ${mega.size} synced lyrics from Megalobiz for '$title' by '$artist'")
                 return mega
@@ -308,7 +344,7 @@ object LyricsRepository {
 
         // Provider 3: LRCLIB API (Community database)
         try {
-            val lrclib = fetchLrclibLyrics(title, artist)
+            val lrclib = fetchLrclibLyrics(title, artist, targetDurationMs)
             if (lrclib.isNotEmpty()) {
                 Log.i(TAG, "Loaded ${lrclib.size} synced lyrics from LRCLIB for '$title' by '$artist'")
                 return lrclib
@@ -331,7 +367,7 @@ object LyricsRepository {
         return emptyList()
     }
 
-    private fun fetchNetEaseLyrics(title: String, artist: String): List<LyricEntry> {
+    private fun fetchNetEaseLyrics(title: String, artist: String, targetDurationMs: Long = 0L): List<LyricEntry> {
         val userAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36"
         val queries = mutableListOf<String>()
         if (artist.isNotBlank()) {
@@ -370,10 +406,13 @@ object LyricsRepository {
                                     val sName = s.optString("name", "").trim()
                                     val artistsArr = s.optJSONArray("artists")
                                     val sArtist = if (artistsArr != null && artistsArr.length() > 0) {
-                                        artistsArr.getJSONObject(0).optString("name", "").trim()
+                                        (0 until artistsArr.length()).mapNotNull { idx ->
+                                            artistsArr.optJSONObject(idx)?.optString("name", "")?.trim()
+                                        }.filter { it.isNotBlank() }.joinToString(", ")
                                     } else ""
+                                    val sDur = s.optLong("duration", 0L)
 
-                                    if (songId > 0 && isTrackMatch(title, artist, sName, sArtist)) {
+                                    if (songId > 0 && isTrackMatch(title, artist, sName, sArtist, targetDurationMs, sDur)) {
                                         val lyricReq = Request.Builder()
                                             .url("https://music.163.com/api/song/lyric?id=$songId&lv=1&kv=1&tv=-1")
                                             .header("User-Agent", userAgent)
@@ -456,7 +495,7 @@ object LyricsRepository {
         return emptyList()
     }
 
-    private fun fetchMegalobizLyrics(title: String, artist: String): List<LyricEntry> {
+    private fun fetchMegalobizLyrics(title: String, artist: String, targetDurationMs: Long = 0L): List<LyricEntry> {
         val userAgent = "XavierCarOS/1.2 (https://github.com/TioXavi/XavierCarOS; automotive-headunit)"
         val queries = mutableListOf<String>()
         if (artist.isNotBlank()) {
@@ -486,7 +525,7 @@ object LyricsRepository {
                                     val resArtist = item.optString("artist", "").trim()
                                     val lrcUrl = item.optString("lrc_url", "").trim()
 
-                                    if (lrcUrl.isNotBlank() && isTrackMatch(title, artist, resTitle, resArtist)) {
+                                    if (lrcUrl.isNotBlank() && isTrackMatch(title, artist, resTitle, resArtist, targetDurationMs)) {
                                         val lrcReq = Request.Builder()
                                             .url(lrcUrl)
                                             .header("User-Agent", userAgent)
@@ -515,7 +554,7 @@ object LyricsRepository {
         return emptyList()
     }
 
-    private fun fetchLrclibLyrics(title: String, artist: String): List<LyricEntry> {
+    private fun fetchLrclibLyrics(title: String, artist: String, targetDurationMs: Long = 0L): List<LyricEntry> {
         val userAgent = "XavierCarOS/1.2 (https://github.com/TioXavi/XavierCarOS; automotive-headunit)"
 
         // Step 1: Direct exact match via /api/get
@@ -541,8 +580,9 @@ object LyricsRepository {
                         val synced = json.optString("syncedLyrics", "").trim()
                         val resTrack = json.optString("trackName", "").trim()
                         val resArtist = json.optString("artistName", "").trim()
+                        val resDur = (json.optDouble("duration", 0.0) * 1000).toLong()
 
-                        if (synced.isNotBlank() && isTrackMatch(title, artist, resTrack, resArtist)) {
+                        if (synced.isNotBlank() && isTrackMatch(title, artist, resTrack, resArtist, targetDurationMs, resDur)) {
                             val parsed = parseLrc(synced)
                             if (parsed.isNotEmpty()) {
                                 Log.i(TAG, "LRCLIB exact match verified for '$title' by '$artist'")
@@ -577,8 +617,9 @@ object LyricsRepository {
                             val synced = item.optString("syncedLyrics", "").trim()
                             val resTrack = item.optString("trackName", "").trim()
                             val resArtist = item.optString("artistName", "").trim()
+                            val resDur = (item.optDouble("duration", 0.0) * 1000).toLong()
 
-                            if (synced.isNotBlank() && isTrackMatch(title, artist, resTrack, resArtist)) {
+                            if (synced.isNotBlank() && isTrackMatch(title, artist, resTrack, resArtist, targetDurationMs, resDur)) {
                                 val parsed = parseLrc(synced)
                                 if (parsed.isNotEmpty()) {
                                     Log.i(TAG, "LRCLIB search match verified: '$resTrack' by '$resArtist'")
@@ -597,57 +638,100 @@ object LyricsRepository {
     }
 
     /**
-     * Intelligent similarity check between target song and search result.
-     * Prevents downloading lyrics of completely different songs while allowing
-     * compilation tags ("Boleros", "Varios", "Latin", etc.) and feat/remaster differences.
+     * Strict & Intelligent similarity check between target song and search result.
+     * Prevents downloading lyrics of completely different songs with the same title.
+     * Validates:
+     * 1. Title match (exact or >= 55% length ratio on containment)
+     * 2. Artist match (mandatory when target artist is known; splits tokens for multi-artist tracks)
+     * 3. Duration match (within 25s or 20% tolerance when both durations are known)
      */
-    private fun isTrackMatch(
+    fun isTrackMatch(
         targetTitle: String,
         targetArtist: String,
         resTrack: String,
-        resArtist: String
+        resArtist: String,
+        targetDurationMs: Long = 0L,
+        resDurationMs: Long = 0L
     ): Boolean {
         if (resTrack.isBlank()) return false
 
-        val normTargetTitle = normalizeString(targetTitle)
-        val normResTrack = normalizeString(resTrack)
+        val cleanT = cleanTrackString(targetTitle)
+        val cleanR = cleanTrackString(resTrack)
 
-        // Title must either be equal, or one must contain the other
-        val titleMatches = normTargetTitle == normResTrack ||
-                (normTargetTitle.length >= 4 && normResTrack.contains(normTargetTitle)) ||
+        val normTargetTitle = normalizeString(cleanT)
+        val normResTrack = normalizeString(cleanR)
+
+        // 1. Title validation
+        val titleExact = normTargetTitle == normResTrack
+        val titleContains = (normTargetTitle.length >= 4 && normResTrack.contains(normTargetTitle)) ||
                 (normResTrack.length >= 4 && normTargetTitle.contains(normResTrack))
+        val titleRatio = if (titleContains) {
+            val minLen = minOf(normTargetTitle.length, normResTrack.length).toFloat()
+            val maxLen = maxOf(normTargetTitle.length, normResTrack.length).toFloat()
+            minLen / maxLen
+        } else 0f
 
+        val titleMatches = titleExact || (titleContains && titleRatio >= 0.55f)
         if (!titleMatches) return false
 
-        // If target artist is known, verify artist matches too
-        val normTargetArtist = normalizeString(targetArtist)
-        val normResArtist = normalizeString(resArtist)
+        // 2. Artist validation (Strict: zero cross-artist contamination)
+        val cleanTargetArtist = cleanArtistString(targetArtist)
+        val cleanResArtist = cleanArtistString(resArtist)
 
-        if (normTargetArtist.isNotBlank() && normResArtist.isNotBlank()) {
-            // Check for generic genre / compilation tags
-            val genericKeywords = setOf("boleros", "varios", "various", "clasicos", "latin", "latino", "musica", "soundtrack", "desconocido", "unknown")
-            if (genericKeywords.contains(normResArtist) || genericKeywords.contains(normTargetArtist)) {
-                return true
-            }
+        val normTargetArtist = normalizeString(cleanTargetArtist)
+        val normResArtist = normalizeString(cleanResArtist)
 
-            val targetParts = targetArtist.split(Regex("""[,&/]|\bfeat\.?\b|\bft\.?\b""", RegexOption.IGNORE_CASE))
-                .map { normalizeString(it) }.filter { it.length >= 3 }
-            val resParts = resArtist.split(Regex("""[,&/]|\bfeat\.?\b|\bft\.?\b""", RegexOption.IGNORE_CASE))
-                .map { normalizeString(it) }.filter { it.length >= 3 }
+        val isTargetKnown = normTargetArtist.isNotBlank() && !isGenericArtist(normTargetArtist)
+        val isResKnown = normResArtist.isNotBlank() && !isGenericArtist(normResArtist)
 
-            val anyPartMatches = targetParts.any { tp -> resParts.any { rp -> tp == rp || tp.contains(rp) || rp.contains(tp) } }
-
-            val artistMatches = normTargetArtist == normResArtist ||
+        if (isTargetKnown && isResKnown) {
+            val directMatch = normTargetArtist == normResArtist ||
                     normTargetArtist.contains(normResArtist) ||
-                    normResArtist.contains(normTargetArtist) ||
-                    anyPartMatches
+                    normResArtist.contains(normTargetArtist)
 
-            if (!artistMatches && normTargetTitle != normResTrack) {
+            if (!directMatch) {
+                val targetTokens = splitArtistTokens(cleanTargetArtist)
+                val resTokens = splitArtistTokens(cleanResArtist)
+
+                val anyTokenMatches = targetTokens.any { tt ->
+                    resTokens.any { rt ->
+                        tt == rt || (tt.length >= 4 && rt.length >= 4 && (tt.contains(rt) || rt.contains(tt)))
+                    }
+                }
+
+                // If target artist is known and NO token matches, REJECT IMMEDIATELY!
+                if (!anyTokenMatches) {
+                    return false
+                }
+            }
+        } else if (isTargetKnown && !isResKnown) {
+            // Target artist is known, but result has no artist tag:
+            // Only accept if title is an exact match
+            if (!titleExact) return false
+        }
+
+        // 3. Duration validation (if both durations are available and > 10s)
+        if (targetDurationMs > 10_000L && resDurationMs > 10_000L) {
+            val diff = Math.abs(targetDurationMs - resDurationMs)
+            val tolerance = maxOf(25_000L, (targetDurationMs * 0.20).toLong())
+            if (diff > tolerance) {
+                Log.d(TAG, "Duration mismatch: target=${targetDurationMs}ms vs res=${resDurationMs}ms (diff=$diff > tol=$tolerance)")
                 return false
             }
         }
 
         return true
+    }
+
+    private fun isGenericArtist(normArtist: String): Boolean {
+        val genericKeywords = setOf("boleros", "varios", "various", "clasicos", "latin", "latino", "musica", "soundtrack", "desconocido", "unknown", "musicalocal", "usb")
+        return genericKeywords.contains(normArtist)
+    }
+
+    private fun splitArtistTokens(artist: String): List<String> {
+        return artist.split(Regex("""[,&/]|\bfeat\.?\b|\bft\.?\b|\by\b|\band\b|\bcon\b""", RegexOption.IGNORE_CASE))
+            .map { normalizeString(it) }
+            .filter { it.length >= 3 }
     }
 
     private fun normalizeString(input: String): String {
@@ -667,13 +751,19 @@ object LyricsRepository {
             val cleanT = sanitizeFileName(title)
             val cleanA = sanitizeFileName(artist)
             val fileName = "${cleanT}_${cleanA}.lrc"
+            val transFileName = "${cleanT}_${cleanA}.trans.json"
 
             val sb = StringBuilder()
+            val transJson = JSONObject()
             for (entry in lyrics) {
                 val mins = entry.timeMs / 60_000
                 val secs = (entry.timeMs % 60_000) / 1000
                 val ms = (entry.timeMs % 1000) / 10
                 sb.append(String.format(java.util.Locale.US, "[%02d:%02d.%02d]%s\n", mins, secs, ms, entry.text))
+                if (!entry.translation.isNullOrBlank()) {
+                    transJson.put(entry.timeMs.toString(), entry.translation)
+                    transJson.put(entry.text.lowercase().trim(), entry.translation)
+                }
             }
             val content = sb.toString()
 
@@ -681,12 +771,18 @@ object LyricsRepository {
             val cacheDir = File(context.cacheDir, "lyrics")
             if (!cacheDir.exists()) cacheDir.mkdirs()
             File(cacheDir, fileName).writeText(content)
+            if (transJson.length() > 0) {
+                File(cacheDir, transFileName).writeText(transJson.toString())
+            }
 
             // 2. Public /sdcard/Music/Lyrics directory for persistent offline backup
             try {
                 val publicDir = File("/sdcard/Music/Lyrics")
                 if (!publicDir.exists()) publicDir.mkdirs()
                 File(publicDir, fileName).writeText(content)
+                if (transJson.length() > 0) {
+                    File(publicDir, transFileName).writeText(transJson.toString())
+                }
             } catch (_: Exception) {}
 
             Log.i(TAG, "Cached ${lyrics.size} synced lyric lines to $fileName")
@@ -695,9 +791,17 @@ object LyricsRepository {
         }
     }
 
+    /**
+     * Parses standard or enhanced LRC content.
+     * Accurately supports the [offset:+-XXXX] tag to adjust playback synchronization.
+     * Automatically filters metadata lines (author, composer, tags).
+     */
     fun parseLrc(lrcContent: String): List<LyricEntry> {
         val list = mutableListOf<LyricEntry>()
         val timeRegex = Regex("""\[(\d{1,2}):(\d{2})(?:[.:](\d{1,3}))?\]""")
+        val offsetRegex = Regex("""\[offset:\s*([+-]?\d+)\s*\]""", RegexOption.IGNORE_CASE)
+
+        val offsetMs = offsetRegex.find(lrcContent)?.groupValues?.getOrNull(1)?.toLongOrNull() ?: 0L
 
         lrcContent.lineSequence().forEach { line ->
             val match = timeRegex.find(line)
@@ -710,7 +814,8 @@ object LyricsRepository {
                     2 -> msString.toLong() * 10
                     else -> msString.take(3).toLong()
                 }
-                val totalMs = minutes * 60_000L + seconds * 1000L + millis
+                val rawTotalMs = minutes * 60_000L + seconds * 1000L + millis
+                val totalMs = (rawTotalMs + offsetMs).coerceAtLeast(0L)
                 val text = line.substring(match.range.last + 1).trim()
                 if (text.isNotBlank() && !isMetadataText(text)) {
                     list.add(LyricEntry(totalMs, text))
@@ -760,5 +865,20 @@ object LyricsRepository {
     fun clearCache() {
         memoryCache.clear()
         preloadedFiles.clear()
+    }
+
+    fun wipeAllLyricsCache(context: Context) {
+        clearCache()
+        try {
+            val internal = File(context.cacheDir, "lyrics")
+            if (internal.exists()) internal.deleteRecursively()
+        } catch (_: Exception) {}
+        try {
+            val publicDir = File("/sdcard/Music/Lyrics")
+            if (publicDir.exists()) {
+                publicDir.listFiles()?.forEach { it.delete() }
+            }
+        } catch (_: Exception) {}
+        Log.i(TAG, "Wiped all lyrics cache completely")
     }
 }

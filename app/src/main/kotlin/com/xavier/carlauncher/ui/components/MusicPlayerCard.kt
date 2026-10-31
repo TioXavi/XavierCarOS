@@ -266,6 +266,17 @@ private fun PlayerView(
                         overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.padding(top = 2.dp)
                     )
+                    val trans = mediaState.fullLyrics.find { it.text == mediaState.lyricsLine }?.translation
+                        ?: com.xavier.carlauncher.media.LyricsTranslationManager.getTranslationSync(mediaState.lyricsLine)
+                    if (!trans.isNullOrBlank()) {
+                        Text(
+                            text = "↳ $trans",
+                            fontSize = 10.sp,
+                            color = Color(0xFFFDE047),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
                 }
             }
         }

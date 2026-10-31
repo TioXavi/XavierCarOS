@@ -69,6 +69,13 @@ class MainActivity : ComponentActivity() {
         com.xavier.carlauncher.media.FavoritesManager.initialize(applicationContext)
         com.xavier.carlauncher.media.LyricsTranslationManager.initialize(applicationContext)
 
+        // One-time cache clean for legacy mismatched lyrics to ensure 100% strict matching
+        val lyricsPrefs = getSharedPreferences("xavier_lyrics_prefs", Context.MODE_PRIVATE)
+        if (!lyricsPrefs.getBoolean("v1_2_strict_cache_wiped", false)) {
+            com.xavier.carlauncher.media.LyricsRepository.wipeAllLyricsCache(applicationContext)
+            lyricsPrefs.edit().putBoolean("v1_2_strict_cache_wiped", true).apply()
+        }
+
         // Initialize native audio player engine (with instant seeking, USB scanning, and synced lyrics)
         com.xavier.carlauncher.media.XavierLocalPlayer.initialize(applicationContext)
 
