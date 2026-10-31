@@ -252,17 +252,31 @@ class OfflineVoiceController private constructor(private val context: Context) {
             // ── 8. Navigation / Map ───────────────────────────────────────────
             text.containsAny("abrir mapa", "mapa", "mapas", "navegación", "navegacion", "waze", "google maps", "cómo llegar", "ruta") -> {
                 _assistantFeedback.value = "🗺️ Abriendo navegación"
-                voiceAssistant.speak("Abriendo el mapa.")
                 try {
                     val wazeIntent = context.packageManager.getLaunchIntentForPackage("com.waze")
-                    if (wazeIntent != null) {
-                        wazeIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                        context.startActivity(wazeIntent)
-                    } else {
-                        val gmaps = Intent(Intent.ACTION_VIEW, android.net.Uri.parse("geo:0,0?q=")).apply {
-                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    val mapsIntent = context.packageManager.getLaunchIntentForPackage("com.google.android.apps.maps")
+                    val organicIntent = context.packageManager.getLaunchIntentForPackage("app.organicmaps")
+                        ?: context.packageManager.getLaunchIntentForPackage("app.organicmaps.web")
+
+                    when {
+                        wazeIntent != null -> {
+                            voiceAssistant.speak("Abriendo Waze.")
+                            wazeIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                            context.startActivity(wazeIntent)
                         }
-                        context.startActivity(gmaps)
+                        mapsIntent != null -> {
+                            voiceAssistant.speak("Abriendo Google Maps.")
+                            mapsIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                            context.startActivity(mapsIntent)
+                        }
+                        organicIntent != null -> {
+                            voiceAssistant.speak("Abriendo Organic Maps.")
+                            organicIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                            context.startActivity(organicIntent)
+                        }
+                        else -> {
+                            voiceAssistant.speak("El mapa satelital integrado está activo en tu pantalla.")
+                        }
                     }
                 } catch (_: Exception) {}
             }

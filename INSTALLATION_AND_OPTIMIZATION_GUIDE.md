@@ -206,10 +206,45 @@ La gran mayoría de pantallas chinas ya vienen rooteadas de fábrica. Si la tuya
 ## 🎨 Personalización en tu Vehículo
 
 Una vez instalado XavierCarOS:
-1. **Cambiar tu Nombre de Bienvenida:** Mantén presionado el texto *"Hola, Xavier"* durante 1 segundo para escribir tu propio nombre (ej: *"Hola, Carlos"*).
-2. **Tu Música en USB:** Conecta cualquier pendrive con canciones (FLAC, MP3 o WAV) y la música arrancará automáticamente al encender el auto.
-3. **Letras Karaoke (`.lrc`):** Coloca el archivo `.lrc` junto a la canción con el mismo nombre (ej: `Cancion.mp3` y `Cancion.lrc`).
-4. **Traducción en Vivo:** Toca el botón de traducción en el reproductor para traducir del inglés al español al instante.
+1. **Selector de 6 Temas de Lujo Automotriz:** Mantén presionado durante 1 segundo el **icono circular del auto** (situado a la derecha del botón de luces/faros) para desplegar el modal interactivo de temas:
+   - ⚡ **Cyberpunk Original (Cyan Neón):** El clásico contraste deportivo azul eléctrico.
+   - 🖤 **Negro OLED Profundo:** Negros puros para pantallas OLED/QLED con acentos ámbar.
+   - ⚙️ **Gris Titanio Mate:** Look sobrio, elegante e industrial.
+   - 🤍 **Blanco Platino (High-Contrast):** Fondo claro ultra luminoso para días muy soleados con contraste perfecto.
+   - 🌸 **Rosa Magenta:** Estilo atrevido y sofisticado con acentos magenta vibrantes.
+   - 🔮 **Morado Neón Púrpura:** Look futurista deep purple con acentos violeta neón.
+2. **Cambiar tu Nombre de Bienvenida:** Mantén presionado el texto *"Hola, Xavier"* durante 1 segundo para escribir tu propio nombre (ej: *"Hola, Carlos"*).
+3. **Tu Música en USB:** Conecta cualquier pendrive con canciones (FLAC, MP3 o WAV) y la música arrancará automáticamente al encender el auto.
+4. **Letras Karaoke (`.lrc`):** Coloca el archivo `.lrc` junto a la canción con el mismo nombre (ej: `Cancion.mp3` y `Cancion.lrc`).
+5. **Traducción en Vivo:** Toca el botón de traducción en el reproductor para traducir del inglés al español al instante.
+
+---
+
+## 🗺️ Mapa Integrado y Navegación GPS (Autonomía 100% y Apps Sugeridas)
+
+### ❓ ¿El mapa sigue funcionando si NO tengo instalado Waze, Google Maps ni Organic Maps?
+**¡SÍ, 100% GARANTIZADO!**
+- El mapa que ves incrustado en el centro del tablero de XavierCarOS **es completamente independiente y autónomo**.
+- Cuenta con un **motor cartográfico satelital nativo (Osmdroid + OpenStreetMap)** desarrollado en Kotlin con aceleración por hardware.
+- Lee directamente las coordenadas de la antena GPS física de tu vehículo (`VehicleLocationManager`) y rota en modo *Course-Up* (orientando las vías hacia la dirección real en la que avanza el auto).
+- **Funciona 100% offline**: Si no tienes conexión de datos ni Wi-Fi, el sistema carga los mapas locales almacenados en el almacenamiento del auto.
+- **No requiere de Google Play Services ni de ninguna aplicación externa para funcionar.**
+
+### 📲 ¿Para qué sirven los botones de Maps, Waze, Organic, Casa y Trabajo?
+Son accesos rápidos opcionales para cuando deseas abrir una **aplicación de navegación guiada paso a paso a pantalla completa con voz externa** (para viajes largos con avisos de cámaras de velocidad, tráfico en vivo o policía):
+- **Redirección Inteligente Automática:** Si tocas cualquiera de estos botones y la aplicación **no está instalada** en la pantalla de tu carro:
+  1. La voz femenina del asistente del vehículo te avisará amablemente: *"Waze / Google Maps / Organic Maps no está instalado en la pantalla. Abriendo instalador."*
+  2. Aparecerá una notificación en pantalla y se abrirá automáticamente la tienda de aplicaciones (`market://`) de tu radio o el enlace de descarga oficial en el navegador web.
+  3. Si presionas **"Casa"** o **"Trabajo"** y no tienes Waze instalado pero sí tienes Google Maps, el sistema conmutará automáticamente a Google Maps para que no te quedes sin tu ruta.
+
+### 📥 Enlaces Oficiales para Instalar los Navegadores Opcionales:
+Si deseas tener instaladas estas aplicaciones para navegación guiada completa, te sugerimos instalarlas antes o después de configurar XavierCarOS:
+
+| Navegador | Recomendación de Uso | Enlace de Descarga Directa |
+|---|---|---|
+| ⭐ **Organic Maps** | **¡La opción #1 recomendada para radios chinas!** 100% código abierto, sin publicidad, mapas de todo el mundo y **no requiere cuenta ni servicios de Google**. | • [Sitio Oficial y Descarga](https://organicmaps.app)<br>• [Descarga APK Directa en GitHub](https://github.com/organicmaps/organicmaps/releases)<br>• [F-Droid Store](https://f-droid.org/packages/app.organicmaps/) |
+| 🚗 **Waze** | Ideal si conduces en ciudad y necesitas alertas de policía, cámaras, peligros en la vía y tráfico en tiempo real. | • [Waze en Google Play Store](https://play.google.com/store/apps/details?id=com.waze)<br>• [Waze APK Oficial / APKPure](https://apkpure.com/waze-gps-maps-traffic-alerts-live-navigation/com.waze) |
+| 📍 **Google Maps** | Excelente para encontrar negocios, restaurantes, horarios y navegación estándar de Google. | • [Google Maps en Google Play](https://play.google.com/store/apps/details?id=com.google.android.apps.maps)<br>• [Google Maps APKPure](https://apkpure.com/google-maps-navigate-explore/com.google.android.apps.maps) |
 
 ---
 
@@ -221,6 +256,7 @@ Una vez instalado XavierCarOS:
 | **La flecha del mapa no apuntaba hacia donde iba el auto** | Las pantallas chinas tienen magnetómetros muy sensibles al metal del tablero, confundiendo las brújulas convencionales. | **100% Solucionado.** Reemplazamos la flecha por un círculo cibernético de alta visibilidad y el mapa rota dinámicamente con el rumbo satelital real (*Course-Up*). |
 | **La música tardaba en sonar al encender el carro** | La radio tarda cerca de 1.5 segundos en montar los puertos USB tras dar contacto. | **100% Solucionado.** `XavierLocalPlayer` incluye un guardián de arranque inteligente con reintento automático a los 2.0s que inicia la música solo. |
 | **La IP de la pantalla cambia sola** | El router asigna una IP distinta por DHCP cada vez que se reconecta. | Usa la zona Wi-Fi de tu celular para que la IP se mantenga fija, o consulta la IP en Ajustes > WiFi antes de conectar. |
+| **Presiono Waze, Maps u Organic y no abre nada** | La aplicación no está instalada en la pantalla del auto. | **100% Solucionado con Redirección Automática.** El sistema avisa por voz al conductor y abre de inmediato la tienda de apps o el navegador para instalarla. Además, el mapa principal del tablero sigue funcionando al 100% aunque no tengas ninguna de ellas. |
 
 ---
 

@@ -56,6 +56,41 @@ Si prefieres no usar una IA y hacerlo tú mismo con doble clic desde Windows:
 
 ---
 
+## 🎨 6 Temas de Lujo Automotriz (Selector Táctil Rápido)
+
+XavierCarOS incorpora un motor de temas dinámico de grado OEM. Mantén presionado durante 1 segundo el **icono circular del auto** en la tarjeta de vehículo para elegir entre:
+- ⚡ **Cyberpunk Original (Cyan Neón):** El contraste deportivo clásico con acentos azul cielo y cyan eléctrico.
+- 🖤 **Negro OLED:** Negros puros absolutos (`#000000`) para pantallas OLED/QLED con ahorro de energía y contraste ámbar de carreras.
+- ⚙️ **Gris Titanio:** Look industrial sobrio de cabina de carreras en grafito cepillado.
+- 🤍 **Blanco Platino:** Modo diurno de alta visibilidad para días de sol radiante con texto de alto contraste.
+- 🌸 **Rosa Magenta:** Estilo moderno y audaz con acentos magenta vibrantes.
+- 🔮 **Morado Neón:** Estilo deep violet futurista con resplandor púrpura.
+
+---
+
+## 🗺️ Mapa Satelital Integrado (100% Autónomo) y Redirección Inteligente
+
+### ❓ ¿El mapa funciona si no tengo instalado Waze, Google Maps ni Organic Maps?
+**¡SÍ, 100%!**
+- El mapa central de XavierCarOS **no depende de ninguna aplicación externa ni de los servicios de Google Play**.
+- Incorpora un **motor cartográfico nativo (Osmdroid + OpenStreetMap)** con aceleración por GPU.
+- Muestra en vivo las calles, el vehículo en movimiento y la orientación real por satélite en tiempo real (*Course-Up*).
+- Admite mapas locales descargados para funcionar de forma **100% offline sin datos ni conexión a internet**.
+
+### 🚀 Redirección Automática si una App de Navegación no está Instalada
+El dock de navegación incluye accesos directos a **Maps**, **Waze**, **Organic Maps**, **Casa** y **Trabajo**.
+- Si el conductor presiona cualquiera de estos botones y la aplicación **no está instalada** en la radio del auto:
+  1. El asistente de voz del vehículo anuncia: *"Waze / Google Maps / Organic Maps no está instalado en la pantalla. Abriendo instalador."*
+  2. Muestra un aviso en pantalla y **abre automáticamente la tienda de aplicaciones o el navegador web con el enlace de descarga oficial**.
+  3. Si presionas "Casa" o "Trabajo" y no tienes Waze pero sí tienes Google Maps, el sistema conmutará automáticamente a Google Maps para iniciar la ruta sin interrupciones.
+
+### 📥 Enlaces Oficiales de Navegadores Sugeridos:
+- ⭐ **Organic Maps (100% Recomendado para radios chinas sin Play Store):** [Sitio Oficial y Descarga](https://organicmaps.app) · [Releases APK en GitHub](https://github.com/organicmaps/organicmaps/releases) · [F-Droid](https://f-droid.org/packages/app.organicmaps/)
+- 🚗 **Waze (Tráfico en vivo y policía):** [Google Play](https://play.google.com/store/apps/details?id=com.waze) · [APKPure APK](https://apkpure.com/waze-gps-maps-traffic-alerts-live-navigation/com.waze)
+- 📍 **Google Maps:** [Google Play](https://play.google.com/store/apps/details?id=com.google.android.apps.maps)
+
+---
+
 ## ☀️ Clima Inteligente (Zero Config — Listo para Usar)
 
 El módulo de clima de XavierCarOS viene **100% preconfigurado de fábrica**:

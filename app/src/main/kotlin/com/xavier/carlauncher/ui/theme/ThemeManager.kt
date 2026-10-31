@@ -227,3 +227,4 @@ object XavierTheme {
         @Composable
         get() = LocalCarThemeColors.current
 }
+

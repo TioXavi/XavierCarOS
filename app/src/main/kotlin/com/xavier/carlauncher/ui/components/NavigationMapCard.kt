@@ -9,6 +9,7 @@ import android.net.Uri
 import android.os.Environment
 import android.util.Log
 import android.view.MotionEvent
+import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -40,6 +41,7 @@ import com.xavier.carlauncher.location.VehicleLocationManager
 import com.xavier.carlauncher.navigation.MapDownloadWorker
 import com.xavier.carlauncher.navigation.NavigationGuidance
 import com.xavier.carlauncher.navigation.NavigationManager
+import com.xavier.carlauncher.voice.CarVoiceAssistant
 import com.xavier.carlauncher.ui.theme.ColorBorder
 import com.xavier.carlauncher.ui.theme.ColorGrayDark
 import com.xavier.carlauncher.ui.theme.ColorGrayMid
@@ -70,54 +72,147 @@ fun NavigationMapCard(
     val vehicleLoc by VehicleLocationManager.locationState.collectAsState()
     var recenterCounter by remember { mutableStateOf(0) }
 
-    fun launchWaze(favorite: String? = null) {
-        try {
-            val uri = when (favorite) {
-                "home" -> Uri.parse("waze://?favorite=home&navigate=yes")
-                "work" -> Uri.parse("waze://?favorite=work&navigate=yes")
-                else -> Uri.parse("waze://?navigate=yes")
-            }
-            val wazeIntent = Intent(Intent.ACTION_VIEW, uri).apply {
-                flags = Intent.FLAG_ACTIVITY_NEW_TASK
-            }
-            context.startActivity(wazeIntent)
+    fun isAppInstalled(packageName: String): Boolean {
+        return try {
+            context.packageManager.getPackageInfo(packageName, 0)
+            true
         } catch (_: Exception) {
-            val pkgIntent = context.packageManager.getLaunchIntentForPackage("com.waze")
-            if (pkgIntent != null) {
-                pkgIntent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
-                context.startActivity(pkgIntent)
+            false
+        }
+    }
+
+    fun launchOrInstallApp(
+        primaryPackage: String,
+        altPackage: String? = null,
+        appName: String,
+        webFallbackUrl: String,
+        launchIntentProvider: () -> Intent?
+    ) {
+        val pm = context.packageManager
+        val isPrimaryInstalled = isAppInstalled(primaryPackage)
+        val isAltInstalled = altPackage?.let { isAppInstalled(it) } ?: false
+
+        if (isPrimaryInstalled || isAltInstalled) {
+            try {
+                val intent = launchIntentProvider()
+                if (intent != null && intent.resolveActivity(pm) != null) {
+                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    context.startActivity(intent)
+                    return
+                }
+            } catch (e: Exception) {
+                Log.w("NavigationMapCard", "Failed direct intent for $appName", e)
             }
+
+            // Fallback to launcher intent
+            val targetPkg = if (isPrimaryInstalled) primaryPackage else altPackage
+            if (targetPkg != null) {
+                val pkgIntent = pm.getLaunchIntentForPackage(targetPkg)
+                if (pkgIntent != null) {
+                    pkgIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    try {
+                        context.startActivity(pkgIntent)
+                        return
+                    } catch (e: Exception) {
+                        Log.w("NavigationMapCard", "Failed launcher intent for $appName", e)
+                    }
+                }
+            }
+        }
+
+        // App NOT installed: Inform the driver via voice + Toast and redirect
+        try {
+            CarVoiceAssistant.getInstance(context).speak("$appName no está instalado en la pantalla. Abriendo instalador.")
+        } catch (_: Exception) {}
+
+        Toast.makeText(
+            context,
+            "⚠️ $appName no está instalado. Redirigiendo a la descarga...",
+            Toast.LENGTH_LONG
+        ).show()
+
+        // 1. Try opening Play Store / App Store app
+        val marketIntent = Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=$primaryPackage")).apply {
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        }
+        if (marketIntent.resolveActivity(pm) != null) {
+            try {
+                context.startActivity(marketIntent)
+                return
+            } catch (_: Exception) {}
+        }
+
+        // 2. Fallback to Web Browser / Direct Download
+        try {
+            val webIntent = Intent(Intent.ACTION_VIEW, Uri.parse(webFallbackUrl)).apply {
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+            context.startActivity(webIntent)
+        } catch (e: Exception) {
+            Toast.makeText(
+                context,
+                "No se encontró navegador ni tienda de apps para instalar $appName.",
+                Toast.LENGTH_SHORT
+            ).show()
         }
     }
 
     fun launchGoogleMaps(favorite: String? = null) {
-        try {
-            val uri = when (favorite) {
-                "home" -> Uri.parse("google.navigation:q=Home")
-                "work" -> Uri.parse("google.navigation:q=Work")
-                else -> Uri.parse("geo:0,0?q=")
+        launchOrInstallApp(
+            primaryPackage = "com.google.android.apps.maps",
+            appName = "Google Maps",
+            webFallbackUrl = "https://play.google.com/store/apps/details?id=com.google.android.apps.maps",
+            launchIntentProvider = {
+                val uri = when (favorite) {
+                    "home" -> Uri.parse("google.navigation:q=Home")
+                    "work" -> Uri.parse("google.navigation:q=Work")
+                    else -> Uri.parse("geo:0,0?q=")
+                }
+                Intent(Intent.ACTION_VIEW, uri).apply {
+                    setPackage("com.google.android.apps.maps")
+                }
             }
-            val mapsIntent = Intent(Intent.ACTION_VIEW, uri).apply {
-                setPackage("com.google.android.apps.maps")
-                flags = Intent.FLAG_ACTIVITY_NEW_TASK
-            }
-            context.startActivity(mapsIntent)
-        } catch (_: Exception) {
-            val fallback = Intent(Intent.ACTION_VIEW, Uri.parse("geo:0,0?q=")).apply {
-                flags = Intent.FLAG_ACTIVITY_NEW_TASK
-            }
-            try { context.startActivity(fallback) } catch (_: Exception) {}
+        )
+    }
+
+    fun launchWaze(favorite: String? = null) {
+        val isWazeInstalled = isAppInstalled("com.waze")
+        val isMapsInstalled = isAppInstalled("com.google.android.apps.maps")
+
+        // If navigating to home or work but Waze is not installed and Google Maps is, use Google Maps
+        if (favorite != null && !isWazeInstalled && isMapsInstalled) {
+            launchGoogleMaps(favorite)
+            return
         }
+
+        launchOrInstallApp(
+            primaryPackage = "com.waze",
+            appName = "Waze",
+            webFallbackUrl = "https://play.google.com/store/apps/details?id=com.waze",
+            launchIntentProvider = {
+                val uri = when (favorite) {
+                    "home" -> Uri.parse("waze://?favorite=home&navigate=yes")
+                    "work" -> Uri.parse("waze://?favorite=work&navigate=yes")
+                    else -> Uri.parse("waze://?navigate=yes")
+                }
+                Intent(Intent.ACTION_VIEW, uri).apply {
+                    setPackage("com.waze")
+                }
+            }
+        )
     }
 
     fun launchOrganicMaps() {
-        val pm = context.packageManager
-        val intent = pm.getLaunchIntentForPackage("app.organicmaps.web")
-            ?: pm.getLaunchIntentForPackage("app.organicmaps")
-        if (intent != null) {
-            intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
-            try { context.startActivity(intent) } catch (_: Exception) {}
-        }
+        launchOrInstallApp(
+            primaryPackage = "app.organicmaps",
+            altPackage = "app.organicmaps.web",
+            appName = "Organic Maps",
+            webFallbackUrl = "https://organicmaps.app",
+            launchIntentProvider = {
+                context.packageManager.getLaunchIntentForPackage("app.organicmaps")
+                    ?: context.packageManager.getLaunchIntentForPackage("app.organicmaps.web")
+            }
+        )
     }
 
     Card(
