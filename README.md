@@ -18,18 +18,40 @@
 
 ---
 
-## ⚡ Instalación Rápida en 2 Pasos (Para Cualquier Usuario — Sin Saber Programar)
+## 🚀 OPCIÓN 1 (Recomendada): Instalación 100% Asistida por IA con Google Antigravity o Claude
 
-No necesitas instalar programas complejos, ni Android Studio ni saber de comandos. Todo se realiza con doble clic desde tu PC con Windows:
+La forma más fácil y avanzada de instalar XavierCarOS. No necesitas tocar código ni saber nada de informática:
 
-1. **Paso 1 — Conectar tu pantalla**:  
-   Haz doble clic en 👉 **`1_CONECTAR_PANTALLA.bat`**, escribe la dirección IP de tu pantalla y presiona `ENTER`. Si tu PC no tiene las herramientas de conexión, el archivo las descargará de Google por ti automáticamente.
-2. **Paso 2 — Instalar y Optimizar a 60 FPS**:  
-   Haz doble clic en 👉 **`2_INSTALAR_XAVIERCAROS.bat`**. En menos de 30 segundos acelerará los gráficos con GPU SkiaGL, ajustará las animaciones a 0.5x, instalará XavierCarOS y lo activará como tu pantalla de inicio principal.
-3. **Paso 3 — ¿Quieres volver a como venía de fábrica?**:  
-   Haz doble clic en 👉 **`3_REVERTIR_TODO.bat`**. Todo es 100% reversible, seguro y sin riesgo para tu vehículo.
+1. Conecta tu laptop y la pantalla de tu carro a la **misma red Wi-Fi** (lo más fácil es usar la Zona Wi-Fi / Hotspot de tu celular).
+2. Mira la IP de tu pantalla en **Ajustes > Wi-Fi** (ejemplo: `192.168.1.12`).
+3. Abre **Google Antigravity** o **Claude** en tu computadora, dale la ruta de esta carpeta o este repositorio y copia y pega este mensaje:
 
-> 📖 **Para una guía detallada con fotos, soluciones a pantallas bloqueadas y menús secretos de fábrica:**  
+```text
+Quiero instalar y optimizar XavierCarOS en la pantalla Android de mi auto usando el repositorio oficial:
+https://github.com/TioXavi/XavierCarOS
+
+Tengo mi laptop con Windows y mi pantalla conectadas al mismo WiFi.
+Quiero que hagas todo el trabajo técnico por mí:
+1. Conéctate a la pantalla por ADB en el puerto 5555. Mi IP de pantalla es: [PEGA_TU_IP_AQUÍ].
+2. Lee las instrucciones de INSTALLATION_AND_OPTIMIZATION_GUIDE.md del repositorio.
+3. Audita la pantalla, aplica las optimizaciones a 60 FPS (GPU SkiaGL, animaciones 0.5x, Doze whitelist) e instala XavierCarOS como pantalla principal.
+4. Si la pantalla tiene el puerto cerrado o pide contraseña de fábrica, guíame con los métodos del repositorio.
+¡Comencemos!
+```
+
+El asistente de IA se encargará de todo el proceso de conexión, auditoría y despliegue por ti.
+
+---
+
+## 📦 OPCIÓN 2 (Alternativa): Instalación con Archivos de Doble Clic (.bat)
+
+Si prefieres no usar una IA y hacerlo tú mismo con doble clic desde Windows:
+
+1. **Paso 1 — Conectar tu pantalla**: Haz doble clic en 👉 **`1_CONECTAR_PANTALLA.bat`**, escribe la IP de tu pantalla y presiona `ENTER`.
+2. **Paso 2 — Instalar y Optimizar a 60 FPS**: Haz doble clic en 👉 **`2_INSTALAR_XAVIERCAROS.bat`**. Aplicará las aceleraciones por GPU, instalará XavierCarOS y lo activará como launcher principal.
+3. **Paso 3 — ¿Volver al estado de fábrica?**: Haz doble clic en 👉 **`3_REVERTIR_TODO.bat`**. 100% reversible y seguro.
+
+> 📖 **Para la guía paso a paso completa, solución a pantallas bloqueadas y menú secreto de fábrica:**  
 > Consulta la **[Guía Definitiva de Instalación y Optimización](./INSTALLATION_AND_OPTIMIZATION_GUIDE.md)**.
 
 ---

@@ -63,3 +63,4 @@ echo Puedes volver a instalar XavierCarOS cuando gustes ejecutando:
 echo 1_CONECTAR_PANTALLA.bat y 2_INSTALAR_XAVIERCAROS.bat
 echo.
 pause
+

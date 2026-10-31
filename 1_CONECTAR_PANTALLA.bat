@@ -108,3 +108,4 @@ echo.
 echo Consulta la guía completa en INSTALLATION_AND_OPTIMIZATION_GUIDE.md
 del temp_check.txt >nul 2>nul
 pause
+
