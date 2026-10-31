@@ -33,6 +33,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import com.xavier.carlauncher.ui.theme.ColorBorder
+import com.xavier.carlauncher.ui.theme.XavierTheme
 
 private data class NavItem(
     val icon: ImageVector,
@@ -49,14 +50,6 @@ private val navItems = listOf(
     NavItem(Icons.Default.Settings,   "Ajustes",      Color(0xFF94A3B8)), // Titanium Slate
 )
 
-private val dockBackgroundBrush = Brush.verticalGradient(
-    colors = listOf(
-        Color(0xFF0F172A),
-        Color(0xFF080D1A),
-        Color(0xFF0B1120)
-    )
-)
-
 /**
  * High-end Automotive Left Navigation Dock.
  * Features luxury glassmorphic styling, personality accent colors for each vehicle function,
@@ -71,6 +64,11 @@ fun LeftNavigationDock(
     onTabSelected: (Int) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val colors = XavierTheme.colors
+    val dockBackgroundBrush = remember(colors) {
+        Brush.verticalGradient(colors.dockGradient)
+    }
+
     Box(
         modifier = modifier
             .width(56.dp)
@@ -87,9 +85,9 @@ fun LeftNavigationDock(
                     Brush.verticalGradient(
                         listOf(
                             Color.Transparent,
-                            Color(0xFF334155).copy(alpha = 0.5f),
-                            Color(0xFF38BDF8).copy(alpha = 0.2f),
-                            Color(0xFF334155).copy(alpha = 0.5f),
+                            colors.border.copy(alpha = 0.5f),
+                            colors.secondary.copy(alpha = 0.2f),
+                            colors.border.copy(alpha = 0.5f),
                             Color.Transparent
                         )
                     )

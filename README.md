@@ -185,7 +185,8 @@ Para ver las letras en vivo en el reproductor nativo o en pantalla completa, bas
 | **v1.2** | Modo noche automático por sunset/sunrise GPS (Algoritmo NOAA en tiempo real) | ✅ Completado |
 | **v1.3** | ACC OFF deep sleep — desconexión de hardware GPS y CPU powersave (cero consumo de batería) | ✅ Completado |
 | **v2.0** | Control por voz local manos libres (Offline Voice Assistant + TTS colombiano) | ✅ Completado |
-| **v2.1** | OBD2 ELM327 — velocímetro directo desde ECU, RPM, temperatura del motor y fallas | 🔜 Próximamente (Fase 2) |
+| **v2.2** | Selector dinámico de 6 temas de lujo (Azul Cyber, Negro OLED, Gris Titanio, Blanco Platino, Rosa Cyberpunk, Morado Nebulosa) con activación por pulsación larga | ✅ Completado |
+| **v2.5** | OBD2 ELM327 — velocímetro directo desde ECU, RPM, temperatura del motor y fallas | 🔜 Próximamente (Fase 2) |
 
 ---
 

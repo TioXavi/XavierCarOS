@@ -36,14 +36,8 @@ import com.xavier.carlauncher.ui.theme.ColorGrayDark
 import com.xavier.carlauncher.ui.theme.ColorGrayMid
 import com.xavier.carlauncher.ui.theme.ColorSurface
 import com.xavier.carlauncher.ui.theme.ColorSurfaceDeep
+import com.xavier.carlauncher.ui.theme.XavierTheme
 import kotlinx.coroutines.launch
-
-private val lyricsCardBrush = Brush.verticalGradient(
-    colors = listOf(
-        Color(0xFF1E1035),
-        ColorSurfaceDeep
-    )
-)
 
 /**
  * Automotive Live Synchronized Lyrics Card.
@@ -55,6 +49,10 @@ fun MusicLyricsCard(
     onSeek: (Long) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val colors = XavierTheme.colors
+    val lyricsCardBrush = remember(colors) {
+        Brush.verticalGradient(listOf(colors.lyricsGradientStart, colors.lyricsGradientEnd))
+    }
     val context = LocalContext.current
     val currentTrackKey = "${mediaState.title}_${mediaState.artist}".trim()
 
@@ -144,7 +142,7 @@ fun MusicLyricsCard(
                         text = "Letra en Vivo",
                         fontSize = 14.sp,
                         fontWeight = FontWeight.Bold,
-                        color = Color.White
+                        color = colors.textPrimary
                     )
                 }
 
@@ -154,21 +152,21 @@ fun MusicLyricsCard(
                     horizontalArrangement = Arrangement.spacedBy(4.dp),
                     modifier = Modifier
                         .clip(RoundedCornerShape(12.dp))
-                        .background(Color.White.copy(alpha = 0.08f))
+                        .background(colors.textPrimary.copy(alpha = 0.08f))
                         .padding(horizontal = 7.dp, vertical = 3.dp)
                 ) {
                     if (isDownloading) {
                         CircularProgressIndicator(
-                            color = Color(0xFF38BDF8),
+                            color = colors.secondary,
                             strokeWidth = 2.dp,
                             modifier = Modifier.size(10.dp)
                         )
-                        Text(text = "Descargando", fontSize = 10.sp, color = Color(0xFF38BDF8))
+                        Text(text = "Descargando", fontSize = 10.sp, color = colors.secondary)
                     } else if (lyrics.isNotEmpty()) {
                         Box(modifier = Modifier.size(6.dp).background(Color(0xFF10B981), CircleShape))
                         Text(text = "Sincronizada", fontSize = 10.sp, color = Color(0xFF10B981), fontWeight = FontWeight.Medium)
                     } else {
-                        Text(text = "En espera", fontSize = 10.sp, color = ColorGrayMid)
+                        Text(text = "En espera", fontSize = 10.sp, color = colors.textSecondary)
                     }
                 }
             }
@@ -188,7 +186,7 @@ fun MusicLyricsCard(
                         val isActive = index == activeIndex
 
                         val textColor by animateColorAsState(
-                            targetValue = if (isActive) Color(0xFF38BDF8) else Color.White.copy(alpha = 0.45f),
+                            targetValue = if (isActive) colors.secondary else colors.textSecondary.copy(alpha = 0.7f),
                             animationSpec = tween(durationMillis = 200),
                             label = "textColor"
                         )

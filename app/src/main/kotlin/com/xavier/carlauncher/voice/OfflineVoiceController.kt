@@ -326,3 +326,4 @@ class OfflineVoiceController private constructor(private val context: Context) {
         return keywords.any { this.contains(it, ignoreCase = true) }
     }
 }
+

@@ -16,8 +16,11 @@ import androidx.core.view.WindowInsetsControllerCompat
 import androidx.lifecycle.lifecycleScope
 import com.xavier.carlauncher.system.RootHelper
 import com.xavier.carlauncher.ui.screens.DashboardScreen
+import com.xavier.carlauncher.ui.theme.ThemeManager
 import com.xavier.carlauncher.ui.theme.XavierCarOSTheme
 import com.xavier.carlauncher.voice.CarVoiceAssistant
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
@@ -99,8 +102,12 @@ class MainActivity : ComponentActivity() {
             com.xavier.carlauncher.ui.screens.AppDrawerCache.getOrLoad(applicationContext)
         }
 
+        // Initialize active automotive theme
+        ThemeManager.initialize(applicationContext)
+
         setContent {
-            XavierCarOSTheme {
+            val currentTheme by ThemeManager.currentTheme.collectAsState()
+            XavierCarOSTheme(theme = currentTheme) {
                 DashboardScreen()
             }
         }

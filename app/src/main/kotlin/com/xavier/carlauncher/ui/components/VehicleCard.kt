@@ -3,8 +3,10 @@ package com.xavier.carlauncher.ui.components
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
@@ -39,18 +41,15 @@ import com.xavier.carlauncher.ui.theme.ColorGrayMid
 import com.xavier.carlauncher.ui.theme.ColorPrimaryVariant
 import com.xavier.carlauncher.ui.theme.ColorSurface
 import com.xavier.carlauncher.ui.theme.ColorSurfaceDeep
+import com.xavier.carlauncher.ui.theme.XavierTheme
 import com.xavier.carlauncher.weather.WeatherData
-
-// ── Card gradient brush ───────────────────────────────────────────────────────
-private val cardBrush = Brush.verticalGradient(
-    colors = listOf(ColorSurface, ColorSurfaceDeep)
-)
 
 // ── VehicleCard ───────────────────────────────────────────────────────────────
 
 /**
  * Full vehicle overview card: greeting, door‑state overlay, weather widget.
  */
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun VehicleCard(
     doorState:   DoorState,
@@ -58,7 +57,12 @@ fun VehicleCard(
     modifier:    Modifier = Modifier,
     onCarDetailsClick: () -> Unit = {}
 ) {
+    val colors = XavierTheme.colors
+    val cardBrush = remember(colors) {
+        Brush.verticalGradient(listOf(colors.surface, colors.surfaceDeep))
+    }
     var showAssetModal by remember { mutableStateOf(false) }
+    var showThemeModal by remember { mutableStateOf(false) }
     var assetRefreshKey by remember { mutableStateOf(0) }
     val isLightsOn by VehicleIlluminationManager.isLightsOn.collectAsState()
 
@@ -71,7 +75,7 @@ fun VehicleCard(
     Card(
         modifier = modifier,
         shape    = RoundedCornerShape(24.dp),
-        border   = BorderStroke(1.dp, ColorBorder),
+        border   = BorderStroke(1.dp, colors.border),
         colors   = CardDefaults.cardColors(containerColor = Color.Transparent)
     ) {
         Box(
@@ -109,12 +113,12 @@ fun VehicleCard(
                             text       = "Hola, $currentUserName",
                             fontSize   = 28.sp,
                             fontWeight = FontWeight.Bold,
-                            color      = Color.White
+                            color      = colors.textPrimary
                         )
                         Text(
                             text     = "$timeGreeting · Bienvenido",
                             fontSize = 14.sp,
-                            color    = ColorGrayMid
+                            color    = colors.textSecondary
                         )
                     }
                     Row(
@@ -129,35 +133,39 @@ fun VehicleCard(
                             modifier = Modifier
                                 .size(40.dp)
                                 .background(
-                                    color = if (isLightsOn) Color(0xFF0284C7).copy(alpha = 0.35f) else Color(0xFF1E293B).copy(alpha = 0.6f),
+                                    color = if (isLightsOn) colors.secondary.copy(alpha = 0.35f) else Color(0xFF1E293B).copy(alpha = 0.6f),
                                     shape = CircleShape
                                 )
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Highlight,
                                 contentDescription = if (isLightsOn) "Faros Encendidos" else "Faros Apagados",
-                                tint = if (isLightsOn) Color(0xFF38BDF8) else ColorGrayMid,
+                                tint = if (isLightsOn) colors.secondary else colors.textSecondary,
                                 modifier = Modifier.size(20.dp)
                             )
                         }
 
-                        // Circular car button — opens asset customizer or car details
-                        IconButton(
-                            onClick  = {
-                                showAssetModal = true
-                                onCarDetailsClick()
-                            },
+                        // Circular car button — opens asset customizer on TAP, Theme Menu on LONG-PRESS
+                        Box(
                             modifier = Modifier
                                 .size(44.dp)
-                                .background(
-                                    color  = ColorPrimaryVariant,
-                                    shape  = CircleShape
-                                )
+                                .clip(CircleShape)
+                                .background(colors.primaryVariant)
+                                .combinedClickable(
+                                    onClick = {
+                                        showAssetModal = true
+                                        onCarDetailsClick()
+                                    },
+                                    onLongClick = {
+                                        showThemeModal = true
+                                    }
+                                ),
+                            contentAlignment = Alignment.Center
                         ) {
                             Icon(
                                 imageVector        = Icons.Default.DirectionsCar,
-                                contentDescription = "Personalizar auto",
-                                tint               = Color.White,
+                                contentDescription = "Personalizar auto (Mantener presionado para temas)",
+                                tint               = if (colors.isDark) Color.White else colors.primary,
                                 modifier           = Modifier.size(22.dp)
                             )
                         }
@@ -232,6 +240,13 @@ fun VehicleCard(
         CarAssetPickerModal(
             onDismissRequest = { showAssetModal = false },
             onAssetsUpdated = { assetRefreshKey++ }
+        )
+    }
+
+    // Modal to select themes on car button long-press
+    if (showThemeModal) {
+        ThemePickerModal(
+            onDismiss = { showThemeModal = false }
         )
     }
 
@@ -336,6 +351,7 @@ private fun CarSlotLayer(
 
 @Composable
 private fun WeatherWidget(weatherData: WeatherData?) {
+    val colors = XavierTheme.colors
     if (weatherData == null) {
         WeatherShimmer()
         return
@@ -406,14 +422,14 @@ private fun WeatherWidget(weatherData: WeatherData?) {
                         text       = "${weatherData.temp}°",
                         fontSize   = 44.sp,
                         fontWeight = FontWeight.Bold,
-                        color      = Color.White,
+                        color      = colors.textPrimary,
                         lineHeight = 46.sp
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
                         text     = "Sensación ${weatherData.feelsLike}°",
                         fontSize = 12.sp,
-                        color    = ColorGrayMid,
+                        color    = colors.textSecondary,
                         modifier = Modifier.padding(bottom = 6.dp)
                     )
                 }
@@ -445,15 +461,16 @@ private fun WeatherWidget(weatherData: WeatherData?) {
 
 @Composable
 private fun WeatherPill(label: String) {
+    val colors = XavierTheme.colors
     Box(
         modifier = Modifier
             .background(
-                color  = ColorBorder,
+                color  = colors.border,
                 shape  = RoundedCornerShape(50)
             )
             .padding(horizontal = 10.dp, vertical = 4.dp)
     ) {
-        Text(text = label, fontSize = 12.sp, color = Color.White)
+        Text(text = label, fontSize = 12.sp, color = colors.textPrimary)
     }
 }
 

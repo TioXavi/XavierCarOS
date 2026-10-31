@@ -28,12 +28,9 @@ import com.xavier.carlauncher.ui.theme.ColorGrayMid
 import com.xavier.carlauncher.ui.theme.ColorNeonBlue
 import com.xavier.carlauncher.ui.theme.ColorSurface
 import com.xavier.carlauncher.ui.theme.ColorSurfaceDeep
+import com.xavier.carlauncher.ui.theme.XavierTheme
 import kotlin.math.cos
 import kotlin.math.sin
-
-private val speedometerCardBrush = Brush.verticalGradient(
-    colors = listOf(ColorSurface, ColorSurfaceDeep)
-)
 
 /**
  * Interactive Speedometer card with Canvas arc gauge.
@@ -46,6 +43,10 @@ fun SpeedometerCard(
     speedMph: Float,
     modifier: Modifier = Modifier
 ) {
+    val colors = XavierTheme.colors
+    val speedometerCardBrush = remember(colors) {
+        Brush.verticalGradient(listOf(colors.surface, colors.surfaceDeep))
+    }
     var isKmh by remember { mutableStateOf(false) }
 
     val currentSpeed = if (isKmh) speedMph * 1.60934f else speedMph
@@ -55,7 +56,7 @@ fun SpeedometerCard(
     Card(
         modifier = modifier.clickable { isKmh = !isKmh },
         shape    = RoundedCornerShape(24.dp),
-        border   = BorderStroke(1.dp, ColorBorder),
+        border   = BorderStroke(1.dp, colors.border),
         colors   = CardDefaults.cardColors(containerColor = Color.Transparent)
     ) {
         Box(
@@ -93,7 +94,7 @@ fun SpeedometerCard(
                 Text(
                     text     = "Toca para cambiar unidad ($unitLabel)",
                     fontSize = 11.sp,
-                    color    = ColorGrayMid
+                    color    = colors.textSecondary
                 )
             }
         }
@@ -107,6 +108,8 @@ private fun SpeedometerCanvas(
     maxSpeed:      Float,
     unit:          String
 ) {
+    val colors = XavierTheme.colors
+    val arcProgressColor = colors.secondary
     Box(contentAlignment = Alignment.Center) {
         Canvas(modifier = Modifier.fillMaxSize()) {
             val strokeWidth  = 12.dp.toPx()
@@ -135,7 +138,7 @@ private fun SpeedometerCanvas(
             val progressSweep = (animatedSpeed / maxSpeed) * totalSweep
             if (progressSweep > 0f) {
                 drawArc(
-                    color      = ColorNeonBlue,
+                    color      = arcProgressColor,
                     startAngle = startAngle,
                     sweepAngle = progressSweep,
                     useCenter  = false,
@@ -175,13 +178,13 @@ private fun SpeedometerCanvas(
                 text       = currentSpeed.toInt().toString(),
                 fontSize   = 46.sp,
                 fontWeight = FontWeight.Bold,
-                color      = Color.White
+                color      = colors.textPrimary
             )
             Text(
                 text     = unit,
                 fontSize = 14.sp,
                 fontWeight = FontWeight.SemiBold,
-                color    = Color(0xFF38BDF8)
+                color    = colors.secondary
             )
         }
     }

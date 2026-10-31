@@ -3,77 +3,82 @@ package com.xavier.carlauncher.ui.theme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Typography
 import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 
-// ── Brand Colors ──────────────────────────────────────────────────────────────
-val ColorPrimary            = Color(0xFF1D4ED8)
-val ColorPrimaryVariant     = Color(0xFF1E3A8A)
-val ColorSecondary          = Color(0xFF60A5FA)
+// ── Dynamic Theme Accessors (Reactively bind to current active theme) ──────────
+val ColorPrimary: Color
+    @Composable get() = XavierTheme.colors.primary
 
-val ColorBackground         = Color(0xFF060B19)
-val ColorSurface            = Color(0xFF0D1B3A)
-val ColorSurfaceDeep        = Color(0xFF091326)
+val ColorPrimaryVariant: Color
+    @Composable get() = XavierTheme.colors.primaryVariant
 
-val ColorOnPrimary          = Color.White
-val ColorOnBackground       = Color.White
-val ColorOnSurface          = Color.White
+val ColorSecondary: Color
+    @Composable get() = XavierTheme.colors.secondary
 
-val ColorGrayMid            = Color(0xFFB0BEC5)
-val ColorGrayDark           = Color(0xFF607D8B)
+val ColorBackground: Color
+    @Composable get() = XavierTheme.colors.background
 
-val ColorMusicGradientStart = Color(0xFF3B0764)
-val ColorMusicGradientEnd   = Color(0xFF1E1B4B)
+val ColorSurface: Color
+    @Composable get() = XavierTheme.colors.surface
 
-val ColorBorder             = Color(0xFF1E3A8A)
-val ColorNeonBlue           = Color(0xFF60A5FA)
-val ColorAccentGreen        = Color(0xFF22C55E)
+val ColorSurfaceDeep: Color
+    @Composable get() = XavierTheme.colors.surfaceDeep
 
-// ── Dark color scheme ─────────────────────────────────────────────────────────
-private val XavierDarkColorScheme = darkColorScheme(
-    primary            = ColorPrimary,
-    onPrimary          = ColorOnPrimary,
-    primaryContainer   = ColorPrimaryVariant,
-    onPrimaryContainer = Color.White,
-    secondary          = ColorSecondary,
-    onSecondary        = Color.Black,
-    background         = ColorBackground,
-    onBackground       = ColorOnBackground,
-    surface            = ColorSurface,
-    onSurface          = ColorOnSurface,
-    surfaceVariant     = ColorSurfaceDeep,
-    onSurfaceVariant   = ColorGrayMid,
-    outline            = ColorBorder,
-    error              = Color(0xFFEF4444),
-    onError            = Color.White,
-)
+val ColorOnPrimary: Color
+    @Composable get() = XavierTheme.colors.textPrimary
+
+val ColorOnBackground: Color
+    @Composable get() = XavierTheme.colors.textPrimary
+
+val ColorOnSurface: Color
+    @Composable get() = XavierTheme.colors.textPrimary
+
+val ColorGrayMid: Color
+    @Composable get() = XavierTheme.colors.textSecondary
+
+val ColorGrayDark: Color
+    @Composable get() = XavierTheme.colors.textTertiary
+
+val ColorMusicGradientStart: Color
+    @Composable get() = XavierTheme.colors.musicGradientStart
+
+val ColorMusicGradientEnd: Color
+    @Composable get() = XavierTheme.colors.musicGradientEnd
+
+val ColorBorder: Color
+    @Composable get() = XavierTheme.colors.border
+
+val ColorNeonBlue: Color
+    @Composable get() = XavierTheme.colors.secondary
+
+val ColorAccentGreen = Color(0xFF22C55E)
 
 // ── Typography ────────────────────────────────────────────────────────────────
 val XavierTypography = Typography(
-    // Huge clock on status bar
     displayLarge = TextStyle(
         fontSize   = 48.sp,
         fontWeight = FontWeight.Bold,
         color      = Color.White,
         letterSpacing = 0.sp
     ),
-    // Speedometer / large number
     displayMedium = TextStyle(
         fontSize   = 40.sp,
         fontWeight = FontWeight.Bold,
         color      = Color.White,
         letterSpacing = (-0.5).sp
     ),
-    // Section headings inside cards
     displaySmall = TextStyle(
         fontSize   = 32.sp,
         fontWeight = FontWeight.Bold,
         color      = Color.White
     ),
-    // Greeting headline
     headlineLarge = TextStyle(
         fontSize   = 28.sp,
         fontWeight = FontWeight.Bold,
@@ -89,7 +94,6 @@ val XavierTypography = Typography(
         fontWeight = FontWeight.SemiBold,
         color      = Color.White
     ),
-    // Card titles
     titleLarge = TextStyle(
         fontSize   = 16.sp,
         fontWeight = FontWeight.Bold,
@@ -103,9 +107,8 @@ val XavierTypography = Typography(
     titleSmall = TextStyle(
         fontSize   = 13.sp,
         fontWeight = FontWeight.Medium,
-        color      = ColorGrayMid
+        color      = Color(0xFFB0BEC5)
     ),
-    // Body text
     bodyLarge = TextStyle(
         fontSize   = 16.sp,
         fontWeight = FontWeight.Normal,
@@ -114,14 +117,13 @@ val XavierTypography = Typography(
     bodyMedium = TextStyle(
         fontSize   = 14.sp,
         fontWeight = FontWeight.Normal,
-        color      = ColorGrayMid
+        color      = Color(0xFFB0BEC5)
     ),
     bodySmall = TextStyle(
         fontSize   = 12.sp,
         fontWeight = FontWeight.Normal,
-        color      = ColorGrayDark
+        color      = Color(0xFF607D8B)
     ),
-    // Labels
     labelLarge = TextStyle(
         fontSize   = 14.sp,
         fontWeight = FontWeight.Medium,
@@ -130,21 +132,66 @@ val XavierTypography = Typography(
     labelMedium = TextStyle(
         fontSize   = 12.sp,
         fontWeight = FontWeight.Medium,
-        color      = ColorGrayMid
+        color      = Color(0xFFB0BEC5)
     ),
     labelSmall = TextStyle(
         fontSize   = 10.sp,
         fontWeight = FontWeight.Normal,
-        color      = ColorGrayDark
+        color      = Color(0xFF607D8B)
     ),
 )
 
 // ── Theme composable ──────────────────────────────────────────────────────────
 @Composable
-fun XavierCarOSTheme(content: @Composable () -> Unit) {
-    MaterialTheme(
-        colorScheme = XavierDarkColorScheme,
-        typography  = XavierTypography,
-        content     = content
-    )
+fun XavierCarOSTheme(
+    theme: AppTheme = ThemeManager.currentTheme.collectAsState().value,
+    content: @Composable () -> Unit
+) {
+    val themeColors = ThemeManager.getColors(theme)
+
+    val colorScheme = if (themeColors.isDark) {
+        darkColorScheme(
+            primary            = themeColors.primary,
+            onPrimary          = themeColors.textPrimary,
+            primaryContainer   = themeColors.primaryVariant,
+            onPrimaryContainer = themeColors.textPrimary,
+            secondary          = themeColors.secondary,
+            onSecondary        = Color.Black,
+            background         = themeColors.background,
+            onBackground       = themeColors.textPrimary,
+            surface            = themeColors.surface,
+            onSurface          = themeColors.textPrimary,
+            surfaceVariant     = themeColors.surfaceDeep,
+            onSurfaceVariant   = themeColors.textSecondary,
+            outline            = themeColors.border,
+            error              = Color(0xFFEF4444),
+            onError            = Color.White,
+        )
+    } else {
+        lightColorScheme(
+            primary            = themeColors.primary,
+            onPrimary          = Color.White,
+            primaryContainer   = themeColors.primaryVariant,
+            onPrimaryContainer = themeColors.primary,
+            secondary          = themeColors.secondary,
+            onSecondary        = Color.White,
+            background         = themeColors.background,
+            onBackground       = themeColors.textPrimary,
+            surface            = themeColors.surface,
+            onSurface          = themeColors.textPrimary,
+            surfaceVariant     = themeColors.surfaceDeep,
+            onSurfaceVariant   = themeColors.textSecondary,
+            outline            = themeColors.border,
+            error              = Color(0xFFEF4444),
+            onError            = Color.White,
+        )
+    }
+
+    CompositionLocalProvider(LocalCarThemeColors provides themeColors) {
+        MaterialTheme(
+            colorScheme = colorScheme,
+            typography  = XavierTypography,
+            content     = content
+        )
+    }
 }

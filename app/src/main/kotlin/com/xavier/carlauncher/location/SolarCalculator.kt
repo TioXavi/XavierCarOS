@@ -142,3 +142,4 @@ object SolarCalculator {
         return String.format("%02d:%02d %s", h12, m, amPm)
     }
 }
+

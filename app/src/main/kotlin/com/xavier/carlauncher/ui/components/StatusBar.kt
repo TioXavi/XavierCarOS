@@ -27,6 +27,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.xavier.carlauncher.ui.theme.ColorGrayMid
+import com.xavier.carlauncher.ui.theme.XavierTheme
 
 /**
  * Top status bar for the automotive launcher.
@@ -44,6 +45,7 @@ fun TopStatusBar(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
+    val colors = XavierTheme.colors
     val voiceController = remember { OfflineVoiceController.getInstance(context) }
     val isListening by voiceController.isListening.collectAsState()
 
@@ -69,12 +71,12 @@ fun TopStatusBar(
                 text       = currentTime,
                 fontSize   = 32.sp,
                 fontWeight = FontWeight.Bold,
-                color      = Color.White
+                color      = colors.textPrimary
             )
             Text(
                 text     = currentDate,
                 fontSize = 16.sp,
-                color    = ColorGrayMid,
+                color    = colors.textSecondary,
                 modifier = Modifier.padding(bottom = 3.dp)
             )
         }
@@ -88,7 +90,7 @@ fun TopStatusBar(
             Icon(
                 imageVector        = Icons.Default.Mic,
                 contentDescription = "Voice Assistant",
-                tint               = if (isListening) Color(0xFF38BDF8) else Color.White,
+                tint               = if (isListening) colors.secondary else colors.textPrimary,
                 modifier           = Modifier
                     .size(22.dp)
                     .clickable {
@@ -100,7 +102,7 @@ fun TopStatusBar(
             Icon(
                 imageVector        = Icons.Default.LocationOn,
                 contentDescription = "Location",
-                tint               = Color.White,
+                tint               = colors.textPrimary,
                 modifier           = Modifier
                     .size(22.dp)
                     .clickable {
@@ -114,7 +116,7 @@ fun TopStatusBar(
             Icon(
                 imageVector        = Icons.Default.Bluetooth,
                 contentDescription = "Bluetooth",
-                tint               = Color.White,
+                tint               = colors.textPrimary,
                 modifier           = Modifier
                     .size(22.dp)
                     .clickable {
@@ -126,7 +128,7 @@ fun TopStatusBar(
             Icon(
                 imageVector        = Icons.Default.Phone,
                 contentDescription = "Phone",
-                tint               = Color.White,
+                tint               = colors.textPrimary,
                 modifier           = Modifier
                     .size(22.dp)
                     .clickable {
@@ -139,7 +141,7 @@ fun TopStatusBar(
                 modifier  = Modifier
                     .height(24.dp)
                     .width(1.dp),
-                color     = Color.White.copy(alpha = 0.3f)
+                color     = colors.textSecondary.copy(alpha = 0.3f)
             )
 
             // Car / Settings Shortcut
@@ -153,14 +155,14 @@ fun TopStatusBar(
                 Icon(
                     imageVector        = Icons.Default.DirectionsCar,
                     contentDescription = "Car",
-                    tint               = Color.White,
+                    tint               = colors.textPrimary,
                     modifier           = Modifier.size(20.dp)
                 )
                 Text(
                     text     = "$outsideTemp°C",
                     fontSize = 14.sp,
                     fontWeight = FontWeight.SemiBold,
-                    color    = Color.White
+                    color    = colors.textPrimary
                 )
             }
         }

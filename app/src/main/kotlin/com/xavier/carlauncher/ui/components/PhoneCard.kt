@@ -24,6 +24,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
@@ -42,10 +43,7 @@ import com.xavier.carlauncher.ui.theme.ColorGrayMid
 import com.xavier.carlauncher.ui.theme.ColorPrimary
 import com.xavier.carlauncher.ui.theme.ColorSurface
 import com.xavier.carlauncher.ui.theme.ColorSurfaceDeep
-
-private val connectCardBrush = Brush.verticalGradient(
-    colors = listOf(ColorSurface, ColorSurfaceDeep)
-)
+import com.xavier.carlauncher.ui.theme.XavierTheme
 
 /**
  * Quick-dial phone card. Tapping opens the phone dialer.
@@ -55,6 +53,10 @@ fun PhoneCard(
     connectionState: BluetoothConnectionState,
     modifier:        Modifier = Modifier
 ) {
+    val colors = XavierTheme.colors
+    val connectCardBrush = remember(colors) {
+        Brush.verticalGradient(listOf(colors.surface, colors.surfaceDeep))
+    }
     val context = LocalContext.current
 
     Card(
@@ -62,7 +64,7 @@ fun PhoneCard(
             AutomotiveIntentResolver.launchSafely(context, AutomotiveIntentResolver.getPhoneIntent(context))
         },
         shape  = RoundedCornerShape(24.dp),
-        border = BorderStroke(1.dp, ColorBorder),
+        border = BorderStroke(1.dp, colors.border),
         colors = CardDefaults.cardColors(containerColor = Color.Transparent)
     ) {
         Row(
@@ -84,7 +86,7 @@ fun PhoneCard(
                     text       = "Teléfono",
                     fontSize   = 16.sp,
                     fontWeight = FontWeight.Bold,
-                    color      = Color.White
+                    color      = colors.textPrimary
                 )
                 Text(
                     text     = if (connectionState.isConnected)
@@ -92,7 +94,7 @@ fun PhoneCard(
                                else
                                     "Conectar dispositivo",
                     fontSize = 12.sp,
-                    color    = if (connectionState.isConnected) ColorAccentGreen else ColorGrayMid,
+                    color    = if (connectionState.isConnected) ColorAccentGreen else colors.textSecondary,
                     maxLines = 1,
                     overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                 )
@@ -110,6 +112,10 @@ fun BluetoothAudioCard(
     connectionState: BluetoothConnectionState,
     modifier:        Modifier = Modifier
 ) {
+    val colors = XavierTheme.colors
+    val connectCardBrush = remember(colors) {
+        Brush.verticalGradient(listOf(colors.surface, colors.surfaceDeep))
+    }
     val context = LocalContext.current
 
     val openBtApp: () -> Unit = {
@@ -119,7 +125,7 @@ fun BluetoothAudioCard(
     Card(
         modifier = modifier,
         shape  = RoundedCornerShape(24.dp),
-        border = BorderStroke(1.dp, ColorBorder),
+        border = BorderStroke(1.dp, colors.border),
         colors = CardDefaults.cardColors(containerColor = Color.Transparent)
     ) {
         Column(
@@ -164,7 +170,7 @@ fun BluetoothAudioCard(
                                      else "Bluetooth Audio",
                         fontSize   = 13.sp,
                         fontWeight = FontWeight.Bold,
-                        color      = if (connectionState.isConnected) ColorAccentGreen else Color.White,
+                        color      = if (connectionState.isConnected) ColorAccentGreen else colors.textPrimary,
                         maxLines   = 1,
                         overflow   = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                     )
@@ -184,7 +190,7 @@ fun BluetoothAudioCard(
                             text       = if (connectionState.isPlaying) "Reproduciendo" else "Conectado",
                             fontSize   = 10.sp,
                             fontWeight = FontWeight.Medium,
-                            color      = if (connectionState.isPlaying) Color(0xFF38BDF8) else ColorGrayMid
+                            color      = if (connectionState.isPlaying) colors.secondary else colors.textSecondary
                         )
                     }
                 }
@@ -210,7 +216,7 @@ fun BluetoothAudioCard(
                         text       = displayTitle,
                         fontSize   = 14.sp,
                         fontWeight = FontWeight.Bold,
-                        color      = Color.White,
+                        color      = colors.textPrimary,
                         maxLines   = 1,
                         overflow   = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                     )
@@ -232,7 +238,7 @@ fun BluetoothAudioCard(
                     Text(
                         text     = displaySubtitle,
                         fontSize = 11.sp,
-                        color    = if (hasTitle) Color(0xFF38BDF8) else ColorGrayMid,
+                        color    = if (hasTitle) colors.secondary else colors.textSecondary,
                         maxLines = 1,
                         overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                     )
@@ -241,12 +247,12 @@ fun BluetoothAudioCard(
                         text       = "Sin dispositivo conectado",
                         fontSize   = 13.sp,
                         fontWeight = FontWeight.SemiBold,
-                        color      = Color.White
+                        color      = colors.textPrimary
                     )
                     Text(
                         text     = "Toca para vincular teléfono",
                         fontSize = 11.sp,
-                        color    = Color(0xFF38BDF8)
+                        color    = colors.secondary
                     )
                 }
             }

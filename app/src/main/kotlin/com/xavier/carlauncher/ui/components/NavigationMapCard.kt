@@ -44,6 +44,7 @@ import com.xavier.carlauncher.ui.theme.ColorBorder
 import com.xavier.carlauncher.ui.theme.ColorGrayDark
 import com.xavier.carlauncher.ui.theme.ColorGrayMid
 import com.xavier.carlauncher.ui.theme.ColorSurfaceDeep
+import com.xavier.carlauncher.ui.theme.XavierTheme
 import org.osmdroid.config.Configuration
 import org.osmdroid.tileprovider.modules.ArchiveFileFactory
 import org.osmdroid.tileprovider.modules.OfflineTileProvider
@@ -122,7 +123,7 @@ fun NavigationMapCard(
     Card(
         modifier = modifier,
         shape = RoundedCornerShape(24.dp),
-        border = BorderStroke(1.dp, Color(0xFF38BDF8).copy(alpha = 0.45f)),
+        border = BorderStroke(1.dp, XavierTheme.colors.secondary.copy(alpha = 0.45f)),
         colors = CardDefaults.cardColors(containerColor = Color.Transparent)
     ) {
         Box(modifier = Modifier.fillMaxSize()) {

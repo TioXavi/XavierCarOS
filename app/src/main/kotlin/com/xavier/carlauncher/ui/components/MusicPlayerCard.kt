@@ -45,10 +45,7 @@ import com.xavier.carlauncher.ui.theme.ColorGrayMid
 import com.xavier.carlauncher.ui.theme.ColorMusicGradientEnd
 import com.xavier.carlauncher.ui.theme.ColorMusicGradientStart
 import com.xavier.carlauncher.ui.theme.ColorNeonBlue
-
-private val musicCardBrush = Brush.linearGradient(
-    colors = listOf(ColorMusicGradientStart, ColorMusicGradientEnd)
-)
+import com.xavier.carlauncher.ui.theme.XavierTheme
 
 /**
  * Universal media player card supporting Spotify, Poweramp, YouTube Music,
@@ -68,13 +65,17 @@ fun MusicPlayerCard(
     onOpenPlayer:     () -> Unit = {},
     modifier:         Modifier = Modifier
 ) {
+    val colors = XavierTheme.colors
+    val musicCardBrush = remember(colors) {
+        Brush.linearGradient(listOf(colors.musicGradientStart, colors.musicGradientEnd))
+    }
     var showLyrics by remember { mutableStateOf(false) }
     val currentSource by PowerampNotificationListener.currentSource.collectAsState()
 
     Card(
         modifier = modifier,
         shape    = RoundedCornerShape(24.dp),
-        border   = BorderStroke(1.dp, ColorBorder),
+        border   = BorderStroke(1.dp, colors.border),
         colors   = CardDefaults.cardColors(containerColor = Color.Transparent)
     ) {
         Box(
@@ -184,6 +185,7 @@ private fun PlayerView(
     onAlbumClick:    () -> Unit,
     modifier:        Modifier = Modifier
 ) {
+    val colors = XavierTheme.colors
     Column(
         modifier            = modifier,
         verticalArrangement = Arrangement.SpaceBetween
@@ -207,14 +209,14 @@ private fun PlayerView(
                     text       = mediaState.title.ifBlank { "Sin reproducción" },
                     fontSize   = 16.sp,
                     fontWeight = FontWeight.Bold,
-                    color      = Color.White,
+                    color      = colors.textPrimary,
                     maxLines   = 1,
                     overflow   = TextOverflow.Ellipsis
                 )
                 Text(
                     text     = mediaState.artist.ifBlank { "Toca reproducir para iniciar" },
                     fontSize = 13.sp,
-                    color    = ColorGrayMid,
+                    color    = colors.textSecondary,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
@@ -222,7 +224,7 @@ private fun PlayerView(
                     Text(
                         text = "♪ ${mediaState.lyricsLine}",
                         fontSize = 12.sp,
-                        color = Color(0xFF38BDF8),
+                        color = colors.secondary,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.padding(top = 2.dp)
@@ -252,9 +254,9 @@ private fun PlayerView(
                     onSeek(targetMs)
                 },
                 colors = SliderDefaults.colors(
-                    thumbColor         = Color.White,
-                    activeTrackColor   = ColorNeonBlue,
-                    inactiveTrackColor = Color.White.copy(alpha = 0.2f)
+                    thumbColor         = if (colors.isDark) Color.White else colors.primary,
+                    activeTrackColor   = colors.secondary,
+                    inactiveTrackColor = colors.textPrimary.copy(alpha = 0.2f)
                 ),
                 modifier = Modifier.fillMaxWidth()
             )
@@ -303,7 +305,7 @@ private fun PlayerView(
                 Icon(
                     imageVector        = Icons.Default.SkipPrevious,
                     contentDescription = "Previous",
-                    tint               = Color.White,
+                    tint               = colors.textPrimary,
                     modifier           = Modifier.size(30.dp)
                 )
             }
@@ -315,14 +317,14 @@ private fun PlayerView(
                 modifier = Modifier
                     .size(52.dp)
                     .clip(CircleShape)
-                    .background(Color.White)
+                    .background(if (colors.isDark) Color.White else colors.primary)
                     .clickable(onClick = onPlayPause),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector        = if (mediaState.isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
                     contentDescription = if (mediaState.isPlaying) "Pause" else "Play",
-                    tint               = Color(0xFF1E1B4B),
+                    tint               = if (colors.isDark) Color(0xFF1E1B4B) else Color.White,
                     modifier           = Modifier.size(30.dp)
                 )
             }
@@ -336,7 +338,7 @@ private fun PlayerView(
                 Icon(
                     imageVector        = Icons.Default.SkipNext,
                     contentDescription = "Next",
-                    tint               = Color.White,
+                    tint               = colors.textPrimary,
                     modifier           = Modifier.size(30.dp)
                 )
             }

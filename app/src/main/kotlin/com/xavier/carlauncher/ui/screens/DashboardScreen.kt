@@ -23,6 +23,7 @@ import com.xavier.carlauncher.media.PowerampMediaViewModel
 import com.xavier.carlauncher.ui.components.*
 import com.xavier.carlauncher.system.AutomotiveIntentResolver
 import com.xavier.carlauncher.ui.theme.DayNightManager
+import com.xavier.carlauncher.ui.theme.XavierTheme
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.border
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -157,7 +158,7 @@ fun DashboardScreen() {
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFF060B19))
+            .background(XavierTheme.colors.background)
             .alpha(dimmingAlpha)
     ) {
         Row(modifier = Modifier.fillMaxSize()) {
