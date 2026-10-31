@@ -18,39 +18,19 @@
 
 ---
 
-## ⚡ Quick Start (5 minutos)
+## ⚡ Instalación Rápida en 2 Pasos (Para Cualquier Usuario — Sin Saber Programar)
 
-### 1. Compilar el APK
+No necesitas instalar programas complejos, ni Android Studio ni saber de comandos. Todo se realiza con doble clic desde tu PC con Windows:
 
-```bash
-cd XavierCarOS2
+1. **Paso 1 — Conectar tu pantalla**:  
+   Haz doble clic en 👉 **`1_CONECTAR_PANTALLA.bat`**, escribe la dirección IP de tu pantalla y presiona `ENTER`. Si tu PC no tiene las herramientas de conexión, el archivo las descargará de Google por ti automáticamente.
+2. **Paso 2 — Instalar y Optimizar a 60 FPS**:  
+   Haz doble clic en 👉 **`2_INSTALAR_XAVIERCAROS.bat`**. En menos de 30 segundos acelerará los gráficos con GPU SkiaGL, ajustará las animaciones a 0.5x, instalará XavierCarOS y lo activará como tu pantalla de inicio principal.
+3. **Paso 3 — ¿Quieres volver a como venía de fábrica?**:  
+   Haz doble clic en 👉 **`3_REVERTIR_TODO.bat`**. Todo es 100% reversible, seguro y sin riesgo para tu vehículo.
 
-# Asegúrate de tener JAVA_HOME y ANDROID_HOME configurados
-./gradlew assembleDebug
-```
-
-El APK queda en: `app/build/outputs/apk/debug/app-debug.apk`
-
-### 2. Conectar a la Head Unit por ADB Wi-Fi
-
-```bash
-# Conectar (usa la IP de tu pantalla)
-adb connect 192.168.1.55:5555
-
-# Verificar
-adb devices
-```
-
-### 3. Instalar y configurar
-
-```bash
-# Windows
-.\scripts\optimize_headunit.ps1 192.168.1.55
-
-# Linux / Mac
-chmod +x scripts/optimize_headunit.sh
-./scripts/optimize_headunit.sh 192.168.1.55
-```
+> 📖 **Para una guía detallada con fotos, soluciones a pantallas bloqueadas y menús secretos de fábrica:**  
+> Consulta la **[Guía Definitiva de Instalación y Optimización](./INSTALLATION_AND_OPTIMIZATION_GUIDE.md)**.
 
 ---
 

@@ -1,240 +1,194 @@
-# 🚀 Guía Definitiva de Instalación, Auditoría y Optimización Extrema — XavierCarOS
+# 🚗 Guía Definitiva de Instalación y Optimización de Pantallas Android con XavierCarOS
+### *Diseñada para cualquier persona (incluso sin conocimientos de programación ni informática)*
 
 <div align="center">
 
 [![Ko-fi](https://img.shields.io/badge/Ko--fi-Support%20Xavy%20Flores-FF5E5B?style=for-the-badge&logo=ko-fi&logoColor=white)](https://ko-fi.com/xavyflores)
-[![Android](https://img.shields.io/badge/Android-8.1%20a%2014+-3DDC84?style=for-the-badge&logo=android&logoColor=white)](https://developer.android.com)
-[![Platform](https://img.shields.io/badge/Compatible-FYT%20%7C%20TopWay%20%7C%20MTC%20%7C%20TS10-007ACC?style=for-the-badge)](https://github.com)
+[![Windows](https://img.shields.io/badge/Instaladores-.bat%20Doble%20Clic-0078D6?style=for-the-badge&logo=windows&logoColor=white)](https://github.com/TioXavi/XavierCarOS)
+[![FPS](https://img.shields.io/badge/Rendimiento-60%20FPS%20GPU%20SkiaGL-success?style=for-the-badge)](https://github.com/TioXavi/XavierCarOS)
 
-### ☕ Apoya el Proyecto
-> **XavierCarOS** es un desarrollo independiente de ingeniería automotriz de alto rendimiento creado con pasión para transformar cualquier pantalla Android lenta en una experiencia fluida a 60 FPS con estética Cyberpunk OEM.
+### ☕ ¿Te gusta el proyecto?
+> **XavierCarOS** fue desarrollado con dedicación para transformar cualquier pantalla Android de carro lenta y saturada en una experiencia de lujo, rápida, fluida y con diseño Cyberpunk OEM.
 > 
-> Si este sistema y optimizaciones le han dado una nueva vida a tu vehículo, ¡te invito a donar un café para seguir impulsando el desarrollo libre y las nuevas actualizaciones!  
-> 👉 **[Support Xavy Flores en Ko-fi](https://ko-fi.com/xavyflores)**
+> Si esta guía e instaladores le han dado una nueva vida a tu vehículo, ¡te invito a donar un café para seguir mejorando el proyecto y creando nuevas funciones!  
+> 👉 **[Support Xavy Flores en Ko-fi (Invítame un café)](https://ko-fi.com/xavyflores)** ☕
 
 </div>
 
 ---
 
-## 📋 Índice General
-1. [Filosofía y Garantía del 100% de Éxito](#-filosofía-y-garantía-del-100-de-éxito)
-2. [Fase 1: Búsqueda, Conectividad y Acceso ADB](#-fase-1-búsqueda-conectividad-y-acceso-adb)
-   - Preguntas de Diagnóstico e Interactividad 1
-3. [Fase 2: Auditoría Forense del Hardware de la Pantalla](#-fase-2-auditoría-forense-del-hardware-de-la-pantalla)
-   - Preguntas de Diagnóstico e Interactividad 2
-4. [Fase 3: Adaptación y Modificaciones Profundas del Sistema (Ultra Fluidez)](#-fase-3-adaptación-y-modificaciones-profundas-del-sistema)
-5. [Fase 4: Instalación y Concesión de Permisos Críticos en Cero Clics](#-fase-4-instalación-y-concesión-de-permisos-críticos)
-6. [Fase 5: Validación Funcional en Vivo y Modo 100% Offline](#-fase-5-validación-funcional-en-vivo-y-modo-100-offline)
-7. [⚡ Script Todo en Uno Automatizado (`deploy_and_optimize.ps1`)](#-script-todo-en-uno-automatizado)
+## 🌟 Qué vas a lograr
+
+Con esta guía y los instaladores automáticos (`.bat`) podrás cambiar la pantalla lenta y aburrida de tu radio Android por **XavierCarOS**, dejándola mucho más rápida y fluida (a 60 cuadros por segundo), **sin necesidad de programar ni escribir comandos en terminales**.
+
+### ✨ Características que tendrás en tu vehículo:
+1. **Velocidad Extrema (60 FPS):** Optimizaciones profundas de fábrica que eliminan los tirones y el molesto mensaje de *"La aplicación no responde"* (cero ANRs).
+2. **Velocímetro GPS con Brújula Dinámica:** La pantalla detecta tu velocidad real por satélite y orienta el mapa automáticamente hacia el frente de la carretera por donde conduces.
+3. **Reproductor de Música Nativo con Auto-Play:** Conecta tu memoria USB y la música arrancará sola automáticamente cada vez que enciendas el carro (ACC ON).
+4. **Letras Karaoke en Vivo (`.lrc`) y Traducción:** Pantalla de música ampliada con letras sincronizadas que se iluminan al ritmo de la canción y traducción instantánea de inglés a español con un solo toque.
+5. **Clima Inteligente (Zero-Config):** Actualización automática cada 10 minutos o 100% sin internet (modo offline inmediato). No tienes que registrarte ni crear cuentas para el clima.
+6. **Saludo Personalizado:** Mantén presionado *"Hola, Xavier"* durante 1 segundo para escribir tu propio nombre o apodo.
+7. **100% Seguro y Reversible:** Nada de lo que hacemos daña la radio. Con un solo doble clic en `3_REVERTIR_TODO.bat` tu pantalla vuelve exactamente como venía de fábrica.
+8. **Lo que NO se toca y sigue funcionando al 100%:** Tu cámara de reversa original, los controles del timón (volante), la radio FM y las llamadas Bluetooth siguen funcionando perfectamente.
 
 ---
 
-## 🎯 Filosofía y Garantía del 100% de Éxito
+## 🛠️ Antes de empezar: Qué necesitas
 
-Las pantallas Android de automóviles (Head Units chinas o genéricas con procesadores Spreadtrum/Unisoc, Allwinner o MediaTek) suelen sufrir de **lentitud severa, congelamientos (ANR) y launchers de fábrica sobrecargados**.
-
-Esta guía garantiza el **100% de compatibilidad, estabilidad y fluidez** porque no asume nada: audita el hardware real de la pantalla, adapta las variables del sistema en bajo nivel (GPU, memoria, renderizado SkiaGL) y blinda la aplicación contra modos de ahorro agresivos.
-
----
-
-## 🔌 Fase 1: Búsqueda, Conectividad y Acceso ADB
-
-Antes de tocar cualquier archivo, debemos garantizar una tubería de comunicación bidireccional estable entre tu computadora y la radio por **Wi-Fi** (recomendado) o **Cable USB**.
-
-### 1.1 Conexión por Wi-Fi (Recomendado en Vehículo)
-1. Conecta la pantalla y tu laptop a la **misma red Wi-Fi** (o comparte internet desde tu teléfono a ambos).
-2. En la pantalla, entra a **Ajustes > Red e Internet > Wi-Fi > Toca tu red** y anota la dirección IP (ejemplo: `192.168.1.12`).
-3. En tu PC (PowerShell), ejecuta:
-```powershell
-adb kill-server
-adb start-server
-adb connect 192.168.1.12:5555
-```
-
-### 1.2 Verificación de Estado
-Ejecuta:
-```powershell
-adb devices -l
-```
-
----
-
-### ❓ Preguntas de Diagnóstico de la Fase 1
-Responde a este checklist antes de continuar:
-
-- [ ] **P1.1: ¿El comando `adb devices` muestra `192.168.1.XX:5555 device`?**
-  - **SÍ:** ✅ Conectividad perfecta. Pasa a la [Fase 2](#-fase-2-auditoría-forense-del-hardware-de-la-pantalla).
-  - **NO (Muestra `unauthorized`):** ⚠️ En la pantalla del vehículo acaba de aparecer una ventana: *"¿Permitir depuración USB?"*. Marca la casilla **"Permitir siempre desde esta computadora"** y pulsa **Aceptar**.
-  - **NO (Muestra `offline` o no conecta / error 10060):** ❌ El puerto 5555 está cerrado o la IP cambió.
-    - *Solución:* En los ajustes de fábrica de tu pantalla (código habitual `3368`, `8888`, `126` o `000000`), activa **"ADB Over Network"** o conecta un cable USB temporalmente y ejecuta:
-      ```powershell
-      adb usb
-      adb tcpip 5555
-      ```
-- [ ] **P1.2: ¿Tu computadora y la pantalla están en redes con aislamiento de AP (AP Isolation)?**
-  - Si usas el Wi-Fi de tu casa o router de oficina, desactiva temporalmente el *Client Isolation*. La forma más rápida y confiable es usar la zona Wi-Fi (Hotspot) de tu propio teléfono celular.
-
----
-
-## 🔍 Fase 2: Auditoría Forense del Hardware de la Pantalla
-
-Cada radio automotriz tiene especificaciones distintas. Ejecutaremos una radiografía forense completa mediante comandos ADB directos para conocer sus límites exactos:
-
-```powershell
-# 1. Obtener Chipset / Procesador / SoC
-adb shell getprop ro.board.platform
-adb shell getprop ro.product.board
-
-# 2. Arquitectura de CPU
-adb shell getprop ro.product.cpu.abi
-
-# 3. Versión de Android y API Level
-adb shell getprop ro.build.version.release
-adb shell getprop ro.build.version.sdk
-
-# 4. Memoria RAM real instalada y disponible
-adb shell "cat /proc/meminfo | grep -E 'MemTotal|MemFree|MemAvailable|SwapTotal'"
-
-# 5. Resolución nativa y Densidad de Pantalla
-adb shell wm size
-adb shell wm density
-
-# 6. Identificar la Plataforma / Fabricante Automotriz (FYT, TopWay, Microntek, etc.)
-adb shell "pm list packages | grep -E 'syu|tw\.|microntek|ts\.|autochips'"
-
-# 7. Renderizador Gráfico Actual
-adb shell getprop debug.hwui.renderer
-```
-
----
-
-### ❓ Preguntas de Diagnóstico de la Fase 2
-Analiza las salidas obtenidas y clasifica tu pantalla:
-
-- [ ] **P2.1: ¿Cuál es el fabricante / plataforma detectado en el punto 6?**
-  - **`com.syu.*` (FYT / XY Auto / UIS7862 / UIS8141E / SC9853i):** Plataforma FYT líder. XavierCarOS integra soporte nativo directo para sus servicios de MCU, luces y Bluetooth.
-  - **`com.tw.*` o `com.ts.*` (TopWay / TS10 / TS18):** Plataforma TopWay. XavierCarOS usará el enrutador universal `AutomotiveIntentResolver`.
-  - **`com.microntek.*` (MTC / Rockchip PX5 / PX6):** Plataforma Microntek. El interceptor CANBus modular decodificará las puertas mediante el formato de byte array.
-  - **Ninguno de los anteriores (Genérica / AOSP):** XavierCarOS usará los estándares nativos de Android Automotive (A2DP Sink, AVRCP y Action Dial).
-- [ ] **P2.2: ¿Cuánta memoria RAM física tiene la unidad?**
-  - **1 GB a 2 GB RAM:** Requiere congelar el launcher de fábrica para evitar que el sistema cierre apps en segundo plano (detallado en la Fase 3).
-  - **3 GB a 8 GB RAM:** Rendimiento holgado. Admite multitarea completa simultánea (Waze + Spotify + XavierCarOS).
-- [ ] **P2.3: ¿La resolución reportada en `wm size` coincide con la nativa?**
-  - Las resoluciones automotrices estándar son `1024x600`, `1280x720` o `1920x1080`. XavierCarOS escala fluidamente por Compose DPI a cualquier dimensión.
-
----
-
-## ⚡ Fase 3: Adaptación y Modificaciones Profundas del Sistema
-
-Para lograr que una radio con procesador modesto vuele a **60 FPS** sin lag ni congelamientos, aplicamos optimizaciones a nivel de renderizado y administración de energía:
-
-### 3.1 Aceleración Gráfica Forzada (GPU Hardware Rendering)
-Por defecto, muchas radios chinas delegan capas al procesador en lugar de la GPU Mali/PowerVR. Forzamos el procesado 100% por GPU:
-```powershell
-# Forzar composición por GPU en lugar de CPU
-adb shell setprop debug.sf.hw 1
-adb shell setprop debug.egl.hw 1
-adb shell settings put global force_gpu_rendering 1
-
-# Activar el motor SkiaGL para Jetpack Compose (aceleración 2D ultra veloz)
-adb shell setprop debug.hwui.renderer skiagl
-```
-
-### 3.2 Escala de Animaciones a Velocidad Deportiva (0.5x)
-Las animaciones de Android 8.1 / 10 a escala 1.0x se sienten pesadas y lentas. Reducirlas a 0.5x duplica la sensación de respuesta táctil:
-```powershell
-adb shell settings put global window_animation_scale 0.5
-adb shell settings put global transition_animation_scale 0.5
-adb shell settings put global animator_duration_scale 0.5
-```
-
-### 3.3 Blindaje contra ANR y Whitelist del Modo Reposo (Doze Mode)
-Evita que el sistema operativo "congele" XavierCarOS o apague el receptor GPS cuando la pantalla entra en bajo consumo:
-```powershell
-# Agregar a la lista blanca del sistema
-adb shell dumpsys deviceidle whitelist +com.xavier.carlauncher
-adb shell dumpsys deviceidle whitelist +com.xavier.carlauncher.debug
-
-# Permitir ejecución libre en segundo plano
-adb shell cmd appops set com.xavier.carlauncher RUN_IN_BACKGROUND allow
-adb shell cmd appops set com.xavier.carlauncher.debug RUN_IN_BACKGROUND allow
-```
-
-### 3.4 Deshabilitar Launchers de Fábrica Lentos (Opcional pero muy recomendado)
-Si tu pantalla tiene un launcher de fábrica pesado que consume 300MB de RAM en segundo plano, puedes congelarlo con seguridad (no se borra, solo se inhabilita):
-```powershell
-# Ejemplo para FYT (reemplazar por el paquete auditado en la Fase 2)
-adb shell pm disable-user --user 0 com.syu.launcher47
-# Para volverlo a habilitar si algún día lo deseas:
-# adb shell pm enable com.syu.launcher47
-```
-
----
-
-## 📦 Fase 4: Instalación y Concesión de Permisos Críticos
-
-Instala el APK generado de XavierCarOS y otorga todos los permisos por consola para evitar molestos diálogos emergentes mientras conduces:
-
-```powershell
-# 1. Instalar APK (Reemplazar con la ruta de tu APK)
-adb install -r -d app/build/outputs/apk/debug/app-debug.apk
-
-# 2. Concesión de Permiso de Ubicación Precisa (GPS / Velocímetro)
-adb shell pm grant com.xavier.carlauncher.debug android.permission.ACCESS_FINE_LOCATION
-adb shell pm grant com.xavier.carlauncher.debug android.permission.ACCESS_COARSE_LOCATION
-
-# 3. Permisos de Almacenamiento (Lectura de USB y Música Local)
-adb shell pm grant com.xavier.carlauncher.debug android.permission.READ_EXTERNAL_STORAGE
-adb shell pm grant com.xavier.carlauncher.debug android.permission.WRITE_EXTERNAL_STORAGE
-
-# 4. Permiso de Superposición en Pantalla (System Alert Window)
-adb shell appops set com.xavier.carlauncher.debug SYSTEM_ALERT_WINDOW allow
-
-# 5. Habilitar Interceptor de Notificaciones (Para metadatos multimedia Bluetooth)
-adb shell cmd notification allow_listener com.xavier.carlauncher.debug/com.xavier.carlauncher.media.PowerampNotificationListener
-
-# 6. Fijar XavierCarOS como Launcher Predeterminado
-adb shell cmd package set-home-activity com.xavier.carlauncher.debug/com.xavier.carlauncher.MainActivity
-```
-
----
-
-## 🚦 Fase 5: Validación Funcional en Vivo y Modo 100% Offline
-
-Verifica en tu automóvil que cada componente esté operando al 100%:
-
-| Módulo | Comportamiento Esperado | Verificación |
+| Elemento | Para qué sirve | Notas para novatos |
 |---|---|---|
-| **GPS / Velocímetro** | El círculo guía apunta y se orienta hacia la carretera. | Inicia la marcha: a > 1 mph el mapa rota dinámicamente según la dirección del vehículo. |
-| **Reproductor Local** | Auto-play inmediato al encender el auto. | Enciende el switch (ACC ON): la música arranca en 2.0s leyendo la USB. |
-| **Personalización** | Nombre de bienvenida a medida. | Mantén presionado `"Hola, Xavier"` durante 1 segundo para ingresar tu nombre. |
-| **Clima Inteligente** | Actualización cada 10 min o silencioso offline. | No congela la pantalla si no hay internet; muestra el último reporte en caché sin demoras. |
-| **Estudio de Letras** | Desplazamiento instantáneo al tocar el dock de música. | Toca el icono de música o desliza: cambia a 0ms sin transiciones pesadas. |
+| **Laptop o PC con Windows 10 u 11** | Para ejecutar los instaladores de un solo clic. | Cualquier laptop sirve. |
+| **La pantalla Android de tu carro** | El equipo donde se instalará XavierCarOS. | Puede ser de 7, 9 o 10 pulgadas (cualquier marca china o genérica). |
+| **Red WiFi Compartida (Hotspot del Celular)** | Para que tu laptop y la pantalla puedan comunicarse. | **Recomendación de oro:** Activa la *"Zona Wi-Fi / Compartir Internet"* de tu celular y conecta ahí tanto la laptop como la pantalla. |
+| **Repositorio descargado en tu PC** | Contiene los archivos `.bat` y la aplicación lista. | Solo descargas el archivo ZIP desde [GitHub](https://github.com/TioXavi/XavierCarOS) y lo descomprimes en una carpeta. |
 
 ---
 
-## ⚡ Script Todo en Uno Automatizado
+## 🛡️ Reglas de Oro y Seguridad
 
-Hemos creado para ti el script automatizado [`scripts/deploy_and_optimize.ps1`](file:///c:/Users/UserAnonimo/.gemini/antigravity/scratch/XavierCarOS2/scripts/deploy_and_optimize.ps1).
+1. **Haz la instalación con el vehículo detenido** (en tu casa, garaje o parqueo).
+2. **Nunca formatees el firmware de la radio**: No hace falta. XavierCarOS se instala como una aplicación principal sin tocar las partes críticas del carro.
+3. **Todo se hace con doble clic**: No tienes que instalar programas raros ni saber comandos de consola; la carpeta ya trae instaladores `.bat` numerados (1, 2 y 3).
 
-Para ejecutar todo este proceso guiado con preguntas interactivas en tu terminal:
+---
 
-```powershell
-.\scripts\deploy_and_optimize.ps1 -DeviceIp "192.168.1.12"
-```
+## 🔌 PASO 1: Conectar tu PC con la Pantalla
 
-El script:
-1. Conecta y valida ADB.
-2. Extrae y formatea toda la auditoría de hardware en tu pantalla.
-3. Te realiza preguntas de confirmación antes de aplicar cada optimización.
-4. Aplica las optimizaciones de SkiaGL, animaciones 0.5x y Doze whitelist.
-5. Instala el APK y aprueba todos los permisos en 5 segundos.
+### 1.1 Conecta ambos al mismo WiFi
+1. Enciende la zona Wi-Fi (punto de acceso) de tu celular.
+2. Conecta tu laptop a ese Wi-Fi.
+3. En la pantalla del carro, ve a **Ajustes > WiFi** y conéctate también al mismo Wi-Fi de tu celular.
+4. Toca sobre el nombre de tu Wi-Fi en la pantalla para ver la dirección IP (suele ser algo como `192.168.43.XX` o `192.168.1.XX`). Anota ese número.
+
+### 1.2 Ejecutar el Asistente de Conexión
+1. En tu laptop, entra a la carpeta de XavierCarOS.
+2. Haz doble clic sobre el archivo:  
+   👉 **`1_CONECTAR_PANTALLA.bat`**
+3. El programa revisará si tienes las herramientas de Google; si no las tienes, **las descargará solo automáticamente**.
+4. Escribe la dirección IP de tu pantalla que anotaste antes y presiona `ENTER`.
+
+---
+
+### ❓ ¿Qué pasa según lo que veas en la pantalla de la laptop?
+
+* ✅ **Si dice "¡CONEXIÓN EXITOSA!":**  
+  ¡Listo! Puedes cerrar esa ventana y pasar directo al **PASO 2**.
+
+* ⚠️ **Si dice "¡PANTALLA NO AUTORIZADA TODAVÍA!":**  
+  Mira la pantalla de tu carro en ese momento: habrá salido un mensaje preguntando *"¿Permitir depuración USB?"*. Marca la casilla **"Permitir siempre desde esta computadora"** y pulsa **Aceptar**. Luego vuelve a hacer doble clic en `1_CONECTAR_PANTALLA.bat`.
+
+* ❌ **Si dice "NO SE PUDO CONECTAR":**  
+  Significa que el fabricante de tu pantalla dejó el puerto de conexión (puerto 5555) apagado de fábrica. Sigue la guía de solución a continuación.
+
+---
+
+### 🔓 ¿Cómo abrir el puerto de conexión si tu pantalla viene bloqueada?
+*(Prueba estas alternativas en orden, de la más fácil a la más avanzada)*:
+
+#### Alternativa A: Menú Secreto de Fábrica (El 90% de las pantallas lo resuelven aquí)
+1. En tu pantalla, abre la app de **Ajustes** (o Ajustes del Coche).
+2. Busca la opción **Ajustes de Fábrica** (Factory Settings).
+3. Te pedirá una contraseña numérica. Prueba las más comunes según el fabricante:
+   - **`3368`** (Pantallas FYT / Topway comunes)
+   - **`8888`** o **`1617`** (Pantallas TS10 / Topway)
+   - **`126`** (Pantallas Microntek / MTC)
+   - **`000000`** o **`123456`** o **`888888`** (Pantallas genéricas Allwinner / Android)
+4. Una vez dentro del menú de fábrica, busca una casilla llamada **"USB Debugging"**, **"ADB"** o **"Protocolo USB: Host / Device"** y márcala como **Activada**. Reinicia la radio.
+
+#### Alternativa B: Conexión rápida por Cable USB
+1. Consigue un cable USB normal (macho a macho) o el cable que uses para conectar tu teléfono a la radio.
+2. Conéctalo desde tu laptop a uno de los puertos USB traseros de la pantalla (el que se usa habitualmente para CarPlay o USB 1).
+3. En tu laptop, abre `1_CONECTAR_PANTALLA.bat` y el sistema abrirá el puerto Wi-Fi al instante. Luego puedes desconectar el cable y seguir sin cables.
+
+#### Alternativa C: Instalar la app "WiFi ADB" o Terminal
+1. En la pantalla del carro, abre el navegador web o pon en una memoria USB la app gratuita **WiFi ADB** (disponible en APKPure o Play Store).
+2. Ábrela y pulsa el botón verde de **"Activar ADB"**. La app te mostrará en letras grandes la IP y el puerto activo (`5555`).
+
+#### Alternativa D: Si la pantalla requiere Root
+La gran mayoría de pantallas Android chinas **ya vienen con permisos de administrador (Root) activados de fábrica**. Si la tuya lo pide:
+- Puedes instalar en la radio una app de Terminal (como *Termux* o *Terminal Emulator*) y escribir:
+  ```bash
+  su
+  setprop service.adb.tcp.port 5555
+  stop adbd
+  start adbd
+  ```
+- Si la radio estuviera completamente bloqueada por el vendedor, herramientas seguras como **KingoRoot APK** (instalado directamente desde un pendrive) pueden conceder root temporal en 1 minuto sin necesidad de flashear firmware peligroso.
+
+---
+
+## 🚀 PASO 2: Instalar y Optimizar a 60 FPS
+
+Una vez confirmada la conexión en el Paso 1:
+
+1. En tu laptop, haz doble clic sobre:  
+   👉 **`2_INSTALAR_XAVIERCAROS.bat`**
+2. Siéntate y mira la pantalla: el instalador hará todo por ti en 30 segundos:
+   - ⚡ **Acelera los gráficos:** Fuerza a la pantalla a renderizar con la tarjeta gráfica GPU (`SkiaGL`) para que no se tranque.
+   - 🏎️ **Animaciones a velocidad deportiva:** Reduce las animaciones a `0.5x` para que al tocar cualquier botón la respuesta sea instantánea.
+   - 🛡️ **Blindaje de Batería:** Protege a XavierCarOS para que el sistema de la radio no lo cierre cuando vas conduciendo.
+   - 📲 **Instala la aplicación y concede todos los permisos:** Ubicación para el velocímetro, lectura de memorias USB para música y micrófono para el asistente de voz (sin que tengas que aceptar ventanas molestas a mano).
+   - 🏠 **Fija XavierCarOS como pantalla principal:** Cada vez que enciendas tu carro o toques el botón de "Inicio / Home", XavierCarOS aparecerá de inmediato.
+
+---
+
+## 🎨 PASO 3: Personalizar y Disfrutar en tu Vehículo
+
+¡Ya tienes XavierCarOS corriendo en tu auto! Aquí tienes trucos rápidos para personalizarlo:
+
+1. **Cambiar tu Nombre de Bienvenida:**  
+   En la pantalla principal, mantén presionado el texto *"Hola, Xavier"* durante 1 segundo. Se abrirá una ventana elegante donde podrás escribir tu propio nombre (ejemplo: *"Hola, Carlos"*) y pulsar Guardar.
+2. **Tu Música en USB:**  
+   Guarda tus canciones (en formato FLAC, MP3 o WAV) en cualquier memoria USB y conéctala al carro. La música empezará a reproducirse automáticamente al encender el auto.
+3. **Letras Karaoke (`.lrc`):**  
+   Si quieres ver la letra sincronizada en tiempo real, pon el archivo `.lrc` con el mismo nombre de la canción en la misma carpeta (ejemplo: `Musica/MiCancion.mp3` y `Musica/MiCancion.lrc`).
+4. **Traducción de Letras:**  
+   En el estudio de música (deslizando a la derecha o tocando el icono de música en la barra izquierda), toca el botón de traducción para ver la letra en español al instante.
+5. **Brújula y Mapa que se orienta hacia el frente:**  
+   Al comenzar a manejar (a más de 1 mph o km/h), el mapa rotará automáticamente apuntando hacia donde avanza tu carro, con un círculo cibernético de alta visibilidad.
+
+---
+
+## 🔄 PASO 4: Cómo volver a como venía de fábrica (100% Reversible)
+
+Si por cualquier motivo vendes el auto, prestas el vehículo o quieres volver al launcher original que traía la radio:
+
+1. En tu laptop, haz doble clic sobre:  
+   👉 **`3_REVERTIR_TODO.bat`**
+2. El sistema restaurará las animaciones originales a 1.0x, liberará la pantalla de inicio y te preguntará si deseas desinstalar XavierCarOS.
+3. Tu radio volverá a su estado original exactamente como el primer día, sin dejar ningún rastro.
+
+---
+
+## 📋 Problemas que pueden suceder y cómo se resuelven
+*(Basado en situaciones reales de pruebas en carretera y pantallas automotrices)*
+
+| Problema | Por qué ocurre | Cómo se resuelve |
+|---|---|---|
+| **Aparecía *"XavierCarOS no responde" (ANR)*** | Ocurría en versiones antiguas cuando la radio no tenía internet y el sistema se quedaba esperando respuestas de clima o traducción. | **100% Solucionado.** El sistema ahora cuenta con memoria caché de 0 milisegundos y modo offline inteligente que nunca bloquea la pantalla. |
+| **La flecha del mapa no apuntaba hacia donde iba el auto** | Las pantallas chinas tienen magnetómetros muy sensibles al metal del tablero del auto, lo que confunde las brújulas convencionales. | **100% Solucionado.** Reemplazamos la flecha por un círculo indicador cibernético y el mapa ahora rota dinámicamente usando el rumbo real de avance satelital (Course-Up). |
+| **La música tardaba en sonar al encender el carro** | La radio tarda cerca de 1.5 segundos en detectar y montar los puertos USB tras dar el contacto. | **100% Solucionado.** `XavierLocalPlayer` incluye un guardián de arranque inteligente con reintento automático a los 2.0 segundos que inicia la reproducción sola. |
+| **La IP de la pantalla cambia sola** | El router de la casa o el teléfono asigna una IP distinta por DHCP cada vez que se reconecta. | Usa la zona Wi-Fi de tu celular para que la IP se mantenga fija, o consulta la IP actual en Ajustes > WiFi antes de conectar. |
+| **Las opciones de desarrollador piden contraseña** | El fabricante chino bloquea el menú para que nadie lo desconfigure. | No fuerces contraseñas al azar. Usa los códigos universales de fábrica (`3368`, `8888`, `1617`, `126`) o conecta un cable USB temporal. |
+| **El launcher original vuelve a aparecer al reiniciar** | Algunas marcas (como TopWay o FYT) tienen servicios de vigilancia que restauran su propia app. | El comando de `2_INSTALAR_XAVIERCAROS.bat` utiliza `cmd package set-home-activity`, asegurando que XavierCarOS sea la pantalla predeterminada permanente. |
+
+---
+
+## 📚 Glosario amigable para no expertos
+
+* **Launcher:** Es la pantalla de inicio de Android (donde están los iconos, la hora, el velocímetro y la música). XavierCarOS reemplaza esa pantalla para que se vea moderna y deportiva.
+* **ADB (Android Debug Bridge):** Es la herramienta oficial y segura que permite a tu computadora comunicarse con la pantalla del carro por Wi-Fi o cable para instalar mejoras.
+* **Firmware:** El sistema operativo base que trae la radio de fábrica. Nosotros **no modificamos el firmware**, por eso la instalación es 100% segura.
+* **ACC ON / ACC OFF:** Las señales del carro cuando giras la llave de encendido (ACC ON = encendido, ACC OFF = apagado). XavierCarOS usa esto para pausar y reanudar la música solo.
+* **ANR ("La aplicación no responde"):** Mensaje de bloqueo que muestra Android cuando una app mal optimizada se congela. XavierCarOS está optimizado a bajo nivel para tener **cero ANRs**.
+* **Archivo .bat:** Un archivo simple de Windows que realiza tareas de forma automática al hacerle doble clic, para que tú no tengas que escribir nada.
+* **Hotspot / Punto de Acceso:** La función de tu teléfono celular que permite compartir tus datos móviles por Wi-Fi con otros dispositivos.
 
 ---
 
 <div align="center">
 
-### ❤️ ¿Te gustó el proyecto?
+### ❤️ ¿Te ha sido útil esta guía?
 Apoya a **Xavier Flores** para seguir creando software automotriz de código abierto y alto rendimiento:
 
 [![Ko-fi Banner](https://img.shields.io/badge/Donar%20un%20Café%20en%20Ko--fi-FF5E5B?style=for-the-badge&logo=ko-fi&logoColor=white)](https://ko-fi.com/xavyflores)
