@@ -11,6 +11,8 @@ import android.hardware.SensorEventListener
 import android.hardware.SensorManager
 import android.os.Build
 import android.util.Log
+import com.xavier.carlauncher.location.SolarCalculator
+import com.xavier.carlauncher.location.VehicleLocationManager
 import com.xavier.carlauncher.weather.WeatherRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -232,10 +234,18 @@ object VehicleIlluminationManager {
 
     /**
      * Determines whether it is currently night based on:
-     * - OpenWeatherMap sunrise/sunset timestamps if available
-     * - Fallback to vehicle local solar hours (17:45 - 05:45 in Honduras)
+     * - Real-time NOAA Solar Zenith calculation at vehicle GPS coordinates
+     * - OpenWeatherMap/Open-Meteo icon day/night indicator as secondary check
      */
     private fun isSolarNight(): Boolean {
+        // 1. Precise astronomical GPS solar calculation
+        val loc = VehicleLocationManager.currentLocation
+        val solarTimes = SolarCalculator.calculate(loc.latitude, loc.longitude)
+        if (solarTimes.isNight) {
+            return true
+        }
+
+        // 2. Weather icon check (01n, 02n, etc.)
         val weather = WeatherRepository.latestWeatherData
         if (weather != null && !weather.iconCode.isNullOrEmpty()) {
             if (weather.iconCode.endsWith("n", ignoreCase = true)) {
@@ -246,17 +256,7 @@ object VehicleIlluminationManager {
             }
         }
 
-        // Fallback: Local hour in Honduras (CST, UTC-6)
-        val cal = Calendar.getInstance()
-        val hour = cal.get(Calendar.HOUR_OF_DAY)
-        val minute = cal.get(Calendar.MINUTE)
-        val timeInMin = hour * 60 + minute
-
-        // Night in Honduras is approximately from 17:45 (5:45 PM) to 05:45 (5:45 AM)
-        val sunsetMin = 17 * 60 + 45
-        val sunriseMin = 5 * 60 + 45
-
-        return timeInMin >= sunsetMin || timeInMin < sunriseMin
+        return solarTimes.isNight
     }
 
     private fun isSystemNightMode(): Boolean {

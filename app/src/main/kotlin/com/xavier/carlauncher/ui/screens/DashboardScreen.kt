@@ -23,6 +23,18 @@ import com.xavier.carlauncher.media.PowerampMediaViewModel
 import com.xavier.carlauncher.ui.components.*
 import com.xavier.carlauncher.system.AutomotiveIntentResolver
 import com.xavier.carlauncher.ui.theme.DayNightManager
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.border
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Mic
+import androidx.compose.material3.Icon
+import androidx.compose.material3.Text
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.sp
+import com.xavier.carlauncher.voice.OfflineVoiceController
 import com.xavier.carlauncher.voice.CarVoiceAssistant
 import com.xavier.carlauncher.weather.WeatherViewModel
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -79,8 +91,12 @@ fun DashboardScreen() {
         weatherVm.startAutoRefresh() // Uses real-time GPS coordinates (updates every 30 min)
     }
 
-    // ─── Voice Assistant: Real-time Door Announcements ─────────────────────────
+    // ─── Voice Assistant: Real-time Door Announcements & Offline Voice Control ──
     val voiceAssistant = remember { CarVoiceAssistant.getInstance(context) }
+    val voiceController = remember { OfflineVoiceController.getInstance(context) }
+    val isVoiceListening by voiceController.isListening.collectAsState()
+    val recognizedVoiceText by voiceController.recognizedText.collectAsState()
+    val assistantFeedback by voiceController.assistantFeedback.collectAsState()
     var previousDoorState by remember { mutableStateOf(doorState) }
 
     LaunchedEffect(doorState) {
@@ -296,5 +312,51 @@ fun DashboardScreen() {
                 selectedTab = 0
             }
         )
+
+        // ── Voice Assistant Floating HUD Banner ──────────────────────────────
+        if (isVoiceListening || (assistantFeedback.isNotBlank() && assistantFeedback != "Listo para escuchar.")) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .padding(top = 10.dp)
+                    .clip(RoundedCornerShape(20.dp))
+                    .background(Color(0xF00A1026))
+                    .border(
+                        BorderStroke(
+                            1.5.dp,
+                            if (isVoiceListening) Color(0xFF38BDF8) else Color(0xFF9333EA)
+                        ),
+                        RoundedCornerShape(20.dp)
+                    )
+                    .clickable { voiceController.stopListening() }
+                    .padding(horizontal = 20.dp, vertical = 8.dp)
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Mic,
+                        contentDescription = "Voice Assistant",
+                        tint = if (isVoiceListening) Color(0xFF38BDF8) else Color(0xFFA855F7),
+                        modifier = Modifier.size(24.dp)
+                    )
+                    Column {
+                        Text(
+                            text = if (isVoiceListening) "🎙️ Escuchando comando..." else "Comando de Voz",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = if (isVoiceListening) Color(0xFF38BDF8) else Color(0xFFA855F7)
+                        )
+                        Text(
+                            text = if (recognizedVoiceText.isNotBlank()) "\"$recognizedVoiceText\"" else assistantFeedback,
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = Color.White
+                        )
+                    }
+                }
+            }
+        }
     }
 }

@@ -456,6 +456,22 @@ class WeatherViewModel(private val application: Application) : AndroidViewModel(
 
     // ── Init — load cache immediately ──────────────────────────────────────────
 
+    private val accReceiver = object : android.content.BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: android.content.Intent?) {
+            when (intent?.action) {
+                com.xavier.carlauncher.services.AccOffService.ACTION_ACC_OFF -> {
+                    Log.i(TAG, "ACC OFF: Pausing weather background auto-refresh to preserve battery")
+                    stopAutoRefresh()
+                }
+                com.xavier.carlauncher.services.AccOffService.ACTION_ACC_ON -> {
+                    Log.i(TAG, "ACC ON: Resuming weather auto-refresh")
+                    startAutoRefresh()
+                    fetchWeather()
+                }
+            }
+        }
+    }
+
     init {
         viewModelScope.launch {
             val cached = repository.loadCachedWeatherData()
@@ -464,6 +480,14 @@ class WeatherViewModel(private val application: Application) : AndroidViewModel(
                 Log.d(TAG, "Loaded cached weather on init")
             }
         }
+
+        val filter = android.content.IntentFilter().apply {
+            addAction(com.xavier.carlauncher.services.AccOffService.ACTION_ACC_OFF)
+            addAction(com.xavier.carlauncher.services.AccOffService.ACTION_ACC_ON)
+        }
+        try {
+            application.registerReceiver(accReceiver, filter)
+        } catch (_: Exception) {}
     }
 
     // ── Public API ────────────────────────────────────────────────────────────
@@ -522,6 +546,9 @@ class WeatherViewModel(private val application: Application) : AndroidViewModel(
 
     override fun onCleared() {
         stopAutoRefresh()
+        try {
+            application.unregisterReceiver(accReceiver)
+        } catch (_: Exception) {}
         super.onCleared()
     }
 }

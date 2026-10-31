@@ -9,11 +9,16 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Bluetooth
 import androidx.compose.material.icons.filled.DirectionsCar
 import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material3.Divider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import com.xavier.carlauncher.voice.OfflineVoiceController
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -39,6 +44,8 @@ fun TopStatusBar(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
+    val voiceController = remember { OfflineVoiceController.getInstance(context) }
+    val isListening by voiceController.isListening.collectAsState()
 
     Row(
         modifier = modifier
@@ -77,6 +84,18 @@ fun TopStatusBar(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
+            // Voice Assistant (Offline Hands-Free)
+            Icon(
+                imageVector        = Icons.Default.Mic,
+                contentDescription = "Voice Assistant",
+                tint               = if (isListening) Color(0xFF38BDF8) else Color.White,
+                modifier           = Modifier
+                    .size(22.dp)
+                    .clickable {
+                        voiceController.startListening()
+                    }
+            )
+
             // Location
             Icon(
                 imageVector        = Icons.Default.LocationOn,

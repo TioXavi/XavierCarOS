@@ -177,15 +177,15 @@ Para ver las letras en vivo en el reproductor nativo o en pantalla completa, bas
 
 ---
 
-## 🗺️ Roadmap
+## 🗺️ Roadmap de Versiones
 
-| Versión | Feature |
-|---|---|
-| ✅ v1.0 | Launcher completo, GPS, Poweramp, Clima, CANBus, BT |
-| 🔜 v1.1 | OBD2 ELM327 — velocímetro real desde ECU, RPM, temp motor |
-| 🔜 v1.2 | Modo noche automático por sunset/sunrise GPS |
-| 🔜 v1.3 | ACC OFF deep sleep — no consume batería sin motor |
-| 🔜 v2.0 | Control por voz local (Vosk offline TTS) |
+| Versión | Feature | Estado |
+|---|---|---|
+| **v1.0** | Launcher completo, GPS satelital, Reproductor nativo USB, Clima dual, CANBus, BT | ✅ Completado |
+| **v1.2** | Modo noche automático por sunset/sunrise GPS (Algoritmo NOAA en tiempo real) | ✅ Completado |
+| **v1.3** | ACC OFF deep sleep — desconexión de hardware GPS y CPU powersave (cero consumo de batería) | ✅ Completado |
+| **v2.0** | Control por voz local manos libres (Offline Voice Assistant + TTS colombiano) | ✅ Completado |
+| **v2.1** | OBD2 ELM327 — velocímetro directo desde ECU, RPM, temperatura del motor y fallas | 🔜 Próximamente (Fase 2) |
 
 ---
 

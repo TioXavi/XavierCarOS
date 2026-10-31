@@ -144,7 +144,9 @@ class MainActivity : ComponentActivity() {
             KeyEvent.KEYCODE_CHANNEL_UP,
             KeyEvent.KEYCODE_CHANNEL_DOWN,
             KeyEvent.KEYCODE_VOLUME_UP,
-            KeyEvent.KEYCODE_VOLUME_DOWN -> true
+            KeyEvent.KEYCODE_VOLUME_DOWN,
+            KeyEvent.KEYCODE_VOICE_ASSIST,
+            KeyEvent.KEYCODE_SEARCH -> true
             else -> false
         }
     }
@@ -195,6 +197,11 @@ class MainActivity : ComponentActivity() {
                     AudioManager.ADJUST_LOWER,
                     AudioManager.FLAG_SHOW_UI
                 )
+                true
+            }
+            KeyEvent.KEYCODE_VOICE_ASSIST,
+            KeyEvent.KEYCODE_SEARCH -> {
+                com.xavier.carlauncher.voice.OfflineVoiceController.getInstance(applicationContext).startListening()
                 true
             }
             else -> false

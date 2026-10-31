@@ -177,24 +177,23 @@ class AccOffService : Service() {
 
         // Update notification
         val nm = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        nm.notify(NOTIF_ID, buildNotification("XavierCarOS — ACC OFF (standby)"))
+        nm.notify(NOTIF_ID, buildNotification("XavierCarOS — ACC OFF (standby deep sleep)"))
 
-        // Broadcast local intent: pause GPS
+        // 1. Hardware GPS chip power down: release location manager and satellite listeners
+        com.xavier.carlauncher.location.VehicleLocationManager.stopListening()
+
+        // 2. Broadcast local intent: pause GPS & reduce UI refresh
         sendLocalBroadcast(ACTION_PAUSE_GPS)
-
-        // Broadcast local intent: reduce UI refresh rate
         sendLocalBroadcast(ACTION_REDUCE_REFRESH)
-
-        // Broadcast the general ACC OFF event so any other component can react
         sendLocalBroadcast(ACTION_ACC_OFF)
 
-        // Reset voice greeting state so next ignition greets again
+        // 3. Reset voice greeting state so next ignition greets again
         com.xavier.carlauncher.voice.CarVoiceAssistant.getInstance(applicationContext).onVehiclePowerOff()
 
-        // Pause native audio playback
+        // 4. Pause native audio playback
         com.xavier.carlauncher.media.XavierLocalPlayer.pause()
 
-        // Root power optimization: drop CPU governor to powersave to preserve car battery
+        // 5. Root deep sleep power optimization: drop CPU governor to powersave and disable wake locks
         CoroutineScope(Dispatchers.IO).launch {
             RootHelper.standbyPowerDown()
         }
@@ -210,16 +209,15 @@ class AccOffService : Service() {
         val nm = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         nm.notify(NOTIF_ID, buildNotification("XavierCarOS is running"))
 
-        // Broadcast local intent: resume GPS
+        // 1. Restore hardware GPS listeners
+        com.xavier.carlauncher.location.VehicleLocationManager.startListening()
+
+        // 2. Broadcast local intent: resume GPS & restore UI refresh
         sendLocalBroadcast(ACTION_RESUME_GPS)
-
-        // Broadcast local intent: restore UI refresh rate
         sendLocalBroadcast(ACTION_RESTORE_REFRESH)
-
-        // Broadcast the general ACC ON event
         sendLocalBroadcast(ACTION_ACC_ON)
 
-        // Root performance optimization: restore performance CPU governor for 60 FPS
+        // 3. Root performance optimization: restore performance CPU governor for 60 FPS
         CoroutineScope(Dispatchers.IO).launch {
             RootHelper.restorePowerUp()
         }
