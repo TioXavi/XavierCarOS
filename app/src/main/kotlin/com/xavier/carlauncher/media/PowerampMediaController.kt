@@ -766,10 +766,12 @@ class PowerampNotificationListener : NotificationListenerService() {
         }
 
         // 2. Select preferred media player for other sessions (Spotify, YouTube Music, Apple Music, Deezer, etc.)
+        val myPkg = instance?.packageName ?: ""
         val externalControllers = controllers.filter {
             !it.packageName.contains("bluetooth", ignoreCase = true) &&
             it.packageName != "com.syu.music" &&
-            it.packageName != (instance?.packageName ?: "")
+            it.packageName != myPkg &&
+            !it.packageName.startsWith("com.xavier.carlauncher")
         }
 
         val preferred = externalControllers.firstOrNull { it.playbackState?.state == PlaybackState.STATE_PLAYING }
@@ -874,6 +876,13 @@ class PowerampNotificationListener : NotificationListenerService() {
 
     private fun handleUniversalMetadata(metadata: MediaMetadata?, pkg: String?) {
         metadata ?: return
+        if (_currentSource.value == AudioSource.LOCAL) {
+            val isExtPlaying = activeController?.playbackState?.state == PlaybackState.STATE_PLAYING
+            if (!isExtPlaying) {
+                // If local playback is active, do not allow background idle sessions to overwrite local state
+                return
+            }
+        }
         val title = metadata.getString(MediaMetadata.METADATA_KEY_TITLE)
             ?: metadata.getString(MediaMetadata.METADATA_KEY_DISPLAY_TITLE)
             ?: ""

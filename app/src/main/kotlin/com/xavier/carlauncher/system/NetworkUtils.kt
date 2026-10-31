@@ -20,8 +20,9 @@ object NetworkUtils {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
                 val network = cm.activeNetwork ?: return false
                 val capabilities = cm.getNetworkCapabilities(network) ?: return false
-                capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) &&
-                        capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)
+                // On automotive Android ROMs, NET_CAPABILITY_VALIDATED often fails or takes minutes due to captive portal checks.
+                // NET_CAPABILITY_INTERNET is the authoritative indicator for connectivity.
+                capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
             } else {
                 @Suppress("DEPRECATION")
                 val netInfo = cm.activeNetworkInfo

@@ -78,17 +78,18 @@ fun MusicPlayerCard(
         border   = BorderStroke(1.dp, colors.border),
         colors   = CardDefaults.cardColors(containerColor = Color.Transparent)
     ) {
-        Box(
+        Column(
             modifier = Modifier
                 .background(musicCardBrush)
                 .fillMaxSize()
-                .padding(16.dp)
+                .padding(horizontal = 14.dp, vertical = 10.dp),
+            verticalArrangement = Arrangement.SpaceBetween
         ) {
             // Header: Player Badge (Left) + Actions (Right)
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .align(Alignment.TopCenter),
+                    .padding(bottom = 2.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -177,16 +178,17 @@ fun MusicPlayerCard(
             Crossfade(
                 targetState   = showLyrics,
                 animationSpec = tween(350),
-                label         = "lyricsCrossfade"
+                label         = "lyricsCrossfade",
+                modifier      = Modifier
+                    .weight(1f)
+                    .fillMaxWidth()
             ) { lyricsVisible ->
                 if (lyricsVisible) {
                     LyricsView(
                         mediaState = mediaState,
                         onDismiss  = { showLyrics = false },
                         onLoadLrc  = onLoadLrc,
-                        modifier   = Modifier
-                            .fillMaxSize()
-                            .padding(top = 28.dp)
+                        modifier   = Modifier.fillMaxSize()
                     )
                 } else {
                     PlayerView(
@@ -198,9 +200,7 @@ fun MusicPlayerCard(
                         onToggleShuffle = onToggleShuffle,
                         onToggleRepeat  = onToggleRepeat,
                         onAlbumClick    = onOpenPlayer,
-                        modifier        = Modifier
-                            .fillMaxSize()
-                            .padding(top = 18.dp)
+                        modifier        = Modifier.fillMaxSize()
                     )
                 }
             }
@@ -406,8 +406,8 @@ private fun PlayerView(
 private fun AlbumArtBox(bitmap: Bitmap?, onClick: () -> Unit) {
     Box(
         modifier = Modifier
-            .size(76.dp)
-            .clip(RoundedCornerShape(12.dp))
+            .size(60.dp)
+            .clip(RoundedCornerShape(10.dp))
             .background(Color(0xFF2D1B69))
             .clickable(onClick = onClick),
         contentAlignment = Alignment.Center
@@ -424,7 +424,7 @@ private fun AlbumArtBox(bitmap: Bitmap?, onClick: () -> Unit) {
                 imageVector        = Icons.Default.MusicNote,
                 contentDescription = "No album art",
                 tint               = ColorGrayMid,
-                modifier           = Modifier.size(34.dp)
+                modifier           = Modifier.size(28.dp)
             )
         }
     }

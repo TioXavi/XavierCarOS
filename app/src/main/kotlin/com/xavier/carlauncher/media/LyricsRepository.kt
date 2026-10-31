@@ -174,7 +174,8 @@ object LyricsRepository {
                     }
 
                     preloadedFiles.add(path)
-                    delay(200) // Polite throttle for LRCLIB API
+                    // Polite 2.5s throttle to guarantee remaining safely below API rate limits (<24 req/min)
+                    delay(2500)
                 }
             } catch (e: Exception) {
                 Log.w(TAG, "Preload folder error", e)
@@ -238,6 +239,13 @@ object LyricsRepository {
                 if (parsed.isNotEmpty()) return parsed
             } catch (_: Exception) {}
         }
+        val cacheFileTitleOnly = File(cacheDir, "${cleanT}.lrc")
+        if (cacheFileTitleOnly.exists() && cacheFileTitleOnly.length() > 0) {
+            try {
+                val parsed = parseLrc(cacheFileTitleOnly.readText())
+                if (parsed.isNotEmpty()) return parsed
+            } catch (_: Exception) {}
+        }
 
         // 3. Check public storage locations (/sdcard/Music/Lyrics, etc.)
         val externalDirs = listOf(
@@ -253,6 +261,13 @@ object LyricsRepository {
                 if (directFile.exists() && directFile.length() > 0) {
                     try {
                         val parsed = parseLrc(directFile.readText())
+                        if (parsed.isNotEmpty()) return parsed
+                    } catch (_: Exception) {}
+                }
+                val directTitle = File(dir, "${cleanT}.lrc")
+                if (directTitle.exists() && directTitle.length() > 0) {
+                    try {
+                        val parsed = parseLrc(directTitle.readText())
                         if (parsed.isNotEmpty()) return parsed
                     } catch (_: Exception) {}
                 }
@@ -275,7 +290,92 @@ object LyricsRepository {
     }
 
     private fun fetchOnlineLyrics(title: String, artist: String): List<LyricEntry> {
-        val userAgent = "Mozilla/5.0 (Linux; Android 8.1.0; XavierCarOS) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/90.0.0.0 Mobile Safari/537.36"
+        // Provider 1: Megalobiz API (Fast, reliable, free public synced LRC API)
+        try {
+            val mega = fetchMegalobizLyrics(title, artist)
+            if (mega.isNotEmpty()) {
+                Log.i(TAG, "Loaded ${mega.size} synced lyrics from Megalobiz for '$title' by '$artist'")
+                return mega
+            }
+        } catch (e: Exception) {
+            Log.d(TAG, "Megalobiz provider error: ${e.message}")
+        }
+
+        // Provider 2: LRCLIB API (Community database)
+        try {
+            val lrclib = fetchLrclibLyrics(title, artist)
+            if (lrclib.isNotEmpty()) {
+                Log.i(TAG, "Loaded ${lrclib.size} synced lyrics from LRCLIB for '$title' by '$artist'")
+                return lrclib
+            }
+        } catch (e: Exception) {
+            Log.d(TAG, "LRCLIB provider error: ${e.message}")
+        }
+
+        return emptyList()
+    }
+
+    private fun fetchMegalobizLyrics(title: String, artist: String): List<LyricEntry> {
+        val userAgent = "XavierCarOS/1.2 (https://github.com/TioXavi/XavierCarOS; automotive-headunit)"
+        val queries = mutableListOf<String>()
+        if (artist.isNotBlank()) {
+            queries.add("$title $artist")
+        }
+        queries.add(title)
+
+        for (q in queries) {
+            try {
+                val encQuery = URLEncoder.encode(q, "UTF-8")
+                val url = "https://api.megalobiz.com/api/public/v1/search?q=$encQuery"
+                val request = Request.Builder()
+                    .url(url)
+                    .header("User-Agent", userAgent)
+                    .build()
+
+                client.newCall(request).execute().use { response ->
+                    if (response.isSuccessful) {
+                        val body = response.body()?.string()
+                        if (!body.isNullOrBlank()) {
+                            val json = JSONObject(body)
+                            val results = json.optJSONArray("results")
+                            if (results != null && results.length() > 0) {
+                                for (i in 0 until minOf(results.length(), 10)) {
+                                    val item = results.getJSONObject(i)
+                                    val resTitle = item.optString("title", "").trim()
+                                    val resArtist = item.optString("artist", "").trim()
+                                    val lrcUrl = item.optString("lrc_url", "").trim()
+
+                                    if (lrcUrl.isNotBlank() && isTrackMatch(title, artist, resTitle, resArtist)) {
+                                        val lrcReq = Request.Builder()
+                                            .url(lrcUrl)
+                                            .header("User-Agent", userAgent)
+                                            .build()
+                                        client.newCall(lrcReq).execute().use { lrcResp ->
+                                            if (lrcResp.isSuccessful) {
+                                                val lrcBody = lrcResp.body()?.string()
+                                                if (!lrcBody.isNullOrBlank()) {
+                                                    val parsed = parseLrc(lrcBody)
+                                                    if (parsed.isNotEmpty()) {
+                                                        return parsed
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                Log.d(TAG, "Megalobiz query '$q' failed: ${e.message}")
+            }
+        }
+        return emptyList()
+    }
+
+    private fun fetchLrclibLyrics(title: String, artist: String): List<LyricEntry> {
+        val userAgent = "XavierCarOS/1.2 (https://github.com/TioXavi/XavierCarOS; automotive-headunit)"
 
         // Step 1: Direct exact match via /api/get
         try {
@@ -304,7 +404,7 @@ object LyricsRepository {
                         if (synced.isNotBlank() && isTrackMatch(title, artist, resTrack, resArtist)) {
                             val parsed = parseLrc(synced)
                             if (parsed.isNotEmpty()) {
-                                Log.i(TAG, "Exact match verified for '$title' by '$artist'")
+                                Log.i(TAG, "LRCLIB exact match verified for '$title' by '$artist'")
                                 return parsed
                             }
                         }
@@ -312,10 +412,10 @@ object LyricsRepository {
                 }
             }
         } catch (e: Exception) {
-            Log.d(TAG, "Exact match get failed, trying search fallback: ${e.message}")
+            Log.d(TAG, "LRCLIB exact match failed: ${e.message}")
         }
 
-        // Step 2: Strict search via /api/search with title & artist validation
+        // Step 2: Search fallback via /api/search
         try {
             val queryParam = if (artist.isNotBlank()) "$title $artist" else title
             val query = URLEncoder.encode(queryParam, "UTF-8")
@@ -340,7 +440,7 @@ object LyricsRepository {
                             if (synced.isNotBlank() && isTrackMatch(title, artist, resTrack, resArtist)) {
                                 val parsed = parseLrc(synced)
                                 if (parsed.isNotEmpty()) {
-                                    Log.i(TAG, "Search match verified: '$resTrack' by '$resArtist' for query '$title' - '$artist'")
+                                    Log.i(TAG, "LRCLIB search match verified: '$resTrack' by '$resArtist'")
                                     return parsed
                                 }
                             }
@@ -349,15 +449,16 @@ object LyricsRepository {
                 }
             }
         } catch (e: Exception) {
-            Log.w(TAG, "Search fallback failed: ${e.message}")
+            Log.d(TAG, "LRCLIB search fallback failed: ${e.message}")
         }
 
         return emptyList()
     }
 
     /**
-     * Strict similarity check between target song and search result.
-     * Prevents downloading or showing lyrics of another song.
+     * Intelligent similarity check between target song and search result.
+     * Prevents downloading lyrics of completely different songs while allowing
+     * compilation tags ("Boleros", "Varios", "Latin", etc.) and feat/remaster differences.
      */
     private fun isTrackMatch(
         targetTitle: String,
@@ -372,8 +473,8 @@ object LyricsRepository {
 
         // Title must either be equal, or one must contain the other
         val titleMatches = normTargetTitle == normResTrack ||
-                normTargetTitle.contains(normResTrack) ||
-                normResTrack.contains(normTargetTitle)
+                (normTargetTitle.length >= 4 && normResTrack.contains(normTargetTitle)) ||
+                (normResTrack.length >= 4 && normTargetTitle.contains(normResTrack))
 
         if (!titleMatches) return false
 
@@ -382,6 +483,12 @@ object LyricsRepository {
         val normResArtist = normalizeString(resArtist)
 
         if (normTargetArtist.isNotBlank() && normResArtist.isNotBlank()) {
+            // Check for generic genre / compilation tags
+            val genericKeywords = setOf("boleros", "varios", "various", "clasicos", "latin", "latino", "musica", "soundtrack", "desconocido", "unknown")
+            if (genericKeywords.contains(normResArtist) || genericKeywords.contains(normTargetArtist)) {
+                return true
+            }
+
             val targetParts = targetArtist.split(Regex("""[,&/]|\bfeat\.?\b|\bft\.?\b""", RegexOption.IGNORE_CASE))
                 .map { normalizeString(it) }.filter { it.length >= 3 }
             val resParts = resArtist.split(Regex("""[,&/]|\bfeat\.?\b|\bft\.?\b""", RegexOption.IGNORE_CASE))
@@ -394,7 +501,9 @@ object LyricsRepository {
                     normResArtist.contains(normTargetArtist) ||
                     anyPartMatches
 
-            if (!artistMatches) return false
+            if (!artistMatches && normTargetTitle != normResTrack) {
+                return false
+            }
         }
 
         return true
